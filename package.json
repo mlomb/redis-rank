@@ -10,7 +10,8 @@
   "scripts": {
     "build": "tsc",
     "prepare": "npm run test && npm run build",
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "dev": "nodemon --exec \"jest\" --watch src --watch tests -e ts,tsx"
   },
   "author": "Martin Lombardo <to@mlomb.me>",
   "license": "MIT",
@@ -19,6 +20,7 @@
     "@types/node": "^12.12.8",
     "codecov": "^3.6.1",
     "jest": "^24.9.0",
+    "nodemon": "^1.19.4",
     "redis": "^2.8.0",
     "redis-mock": "^0.47.0",
     "ts-jest": "^24.1.0",
