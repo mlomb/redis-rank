@@ -1,0 +1,26 @@
+{
+  "name": "redis-rank",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run test && npm run build",
+    "test": "jest --coverage"
+  },
+  "author": "Martin Lombardo <to@mlomb.me>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^24.0.23",
+    "codecov": "^3.6.1",
+    "jest": "^24.9.0",
+    "redis": "^2.8.0",
+    "redis-mock": "^0.47.0",
+    "ts-jest": "^24.1.0",
+    "typescript": "^3.7.2"
+  }
+}
