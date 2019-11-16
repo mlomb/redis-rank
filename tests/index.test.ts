@@ -53,6 +53,11 @@ describe('Basic leaderboard', () => {
             expect(await lb.list(4, 100)).toHaveLength(0);
             expect(await lb.list(50, 55)).toHaveLength(0);
         });
+        test("check list errors", async () => {
+            await expect(lb.list(0, 5)).rejects.toThrow('Out of bounds');
+            await expect(lb.list(-5, 0)).rejects.toThrow('Out of bounds');
+            await expect(lb.list(10, 5)).rejects.toThrow('high must be greater than low');
+        });
     }
     
     describe('high to low', () => {
@@ -76,6 +81,8 @@ describe('Basic leaderboard', () => {
             expect(top[0]).toStrictEqual({ id: "foo", score: 15, rank: 1 });
             expect(top[1]).toStrictEqual({ id: "bar", score: 10, rank: 2 });
             expect(top[2]).toStrictEqual({ id: "baz", score: 5, rank: 3 });
+            
+            expect(top).toStrictEqual(await lb.top());
         });
 
         test("list 2-3", async () => {
