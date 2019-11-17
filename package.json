@@ -1,7 +1,24 @@
 {
   "name": "redis-rank",
   "version": "1.0.0",
-  "description": "",
+  "description": "Back-end to generate and manage leaderboards using Redis. Written in TypeScript and Promise-based.",
+  "keywords": [
+    "redis",
+    "rank",
+    "ranking",
+    "score",
+    "scoring",
+    "scoreboard",
+    "leaderboard",
+    "games",
+    "promises",
+    "typescript"
+  ],
+  "repository": "https://github.com/mlomb/redis-rank",
+  "homepage": "https://github.com/mlomb/redis-rank",
+  "bugs": "https://github.com/mlomb/redis-rank/issues",
+  "author": "Martin Lombardo <to@mlomb.me>",
+  "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
@@ -13,8 +30,6 @@
     "test": "jest --coverage",
     "dev": "nodemon --exec \"npm run test\" --watch src --watch tests -e ts,tsx"
   },
-  "author": "Martin Lombardo <to@mlomb.me>",
-  "license": "MIT",
   "devDependencies": {
     "@types/ioredis": "^4.0.19",
     "@types/jest": "^24.0.23",
