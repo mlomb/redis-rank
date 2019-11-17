@@ -58,6 +58,13 @@ export default class Leaderboard {
     drop(id: ID): Promise<void> {
         return this.client.zrem(this.options.path, id);
     }
+    
+    /**
+     * Remove all the entries
+     */
+    async clear(): Promise<void> {
+        await this.client.del(this.options.path);
+    }
 
     /**
      * Retrieve an entry from the leaderboard
@@ -137,6 +144,41 @@ export default class Leaderboard {
             return null;
         let result = await this.list(rank, rank);
         return result.length == 0 ? null : result[0];
+    }
+
+    async around(id: ID, distance: number, fillBorders: boolean = false): Promise<Entry[]> {
+        if(distance < 0)
+            return [];
+
+        let result = await this.client.eval(
+            `local r=redis.call('z${this.options.lowToHigh ? '' : 'rev'}rank',KEYS[1],ARGV[1])` +
+            `if r==false then return{0,{}} end ` +
+            `local c=redis.call('zcard',KEYS[1])` +
+            `local l=math.max(0, r-ARGV[2])` +
+            (fillBorders ?
+                `local h=l+2*ARGV[2]` +
+                `if h>c then ` +
+                    `h=math.min(c, r+ARGV[2])` +
+                    `l=math.max(0,h-2*ARGV[2]-1)` +
+                `end `
+                :
+                `local h=math.min(c, r+ARGV[2])`
+            ) +
+            `return{l,redis.call('z${this.options.lowToHigh ? '' : 'rev'}range',KEYS[1],l,h,'WITHSCORES')}`,
+            1, this.options.path, id, distance
+        );
+
+        let entries: Entry[] = [];
+        let rank = 0;
+        for (let i = 1; i < result[1].length; i += 2) {
+            entries.push({
+                id: result[1][i],
+                score: parseInt(result[1][i + 1], 10),
+                rank: 1 + result[0] + rank++
+            });
+        }
+
+        return entries;
     }
 
     /**

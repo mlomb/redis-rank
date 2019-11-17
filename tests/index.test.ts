@@ -65,7 +65,6 @@ describe('Basic leaderboard', () => {
         test("top 3 default", async () => {
             expect(await lb.top(3)).toStrictEqual(await lb.top());
         });
-
         test("drop", async () => {
             await lb.set("removal", 42);
             expect(await lb.score("removal")).toBe(42);
@@ -80,6 +79,38 @@ describe('Basic leaderboard', () => {
             expect(await lb.total()).toBe(3);
             await lb.drop("bar");
             expect(await lb.total()).toBe(2);
+        });
+        test("clear", async () => {
+            await lb.clear();
+            expect(await lb.total()).toBe(0);
+        });
+    
+        describe('big leaderboard', () => {
+            beforeEach(async () => {
+                lb.clear();
+                for(let i = 0; i <= 20; i++) // so 0th, 1th ... 19th, 20th
+                    await lb.set(`${i}th`, i);
+            });
+            test("around invalid", async () => {
+                expect(await lb.around('non-existing', 5)).toHaveLength(0);
+                expect(await lb.around('10th', -1)).toHaveLength(0);
+            });
+            test("around lengths", async () => {
+                expect(await lb.around('10th', 0)).toHaveLength(1);
+                expect(await lb.around('10th', 1)).toHaveLength(3);
+                expect(await lb.around('10th', 5)).toHaveLength(5 + 1 + 5); // 11
+                expect(await lb.around('3th', 5)).toHaveLength(3 + 1 + 5); // 8
+                expect(await lb.around('17th', 5)).toHaveLength(5 + 1 + 3); // 8
+                expect(await lb.around('10th', 50)).toHaveLength(10 + 1 + 10); // 21
+            });
+            test("around border lengths", async () => {
+                expect(await lb.around('10th', 0, true)).toHaveLength(1);
+                expect(await lb.around('10th', 1, true)).toHaveLength(3);
+                expect(await lb.around('10th', 5, true)).toHaveLength(5 + 1 + 5); // 11
+                expect(await lb.around('3th', 5, true)).toHaveLength(7 + 1 + 3); // 11
+                expect(await lb.around('17th', 5, true)).toHaveLength(3 + 1 + 7); // 11
+                expect(await lb.around('10th', 50, true)).toHaveLength(10 + 1 + 10); // 21
+            });
         });
     }
     
