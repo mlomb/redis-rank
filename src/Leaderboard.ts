@@ -50,6 +50,25 @@ export default class Leaderboard {
     }
 
     /**
+     * Retrieve an entry from the leaderboard
+     */
+    async peek(id: ID): Promise<Entry | null> {
+        let result = await this.client.eval(
+            `return{` +
+                `redis.call('zscore',KEYS[1],ARGV[1]),` +
+                `redis.call('z${this.options.lowToHigh ? '' : 'rev'}rank',KEYS[1],ARGV[1])` +
+            `}`, // 83 bytes vs 20 bytes using EVALSHA maybe worth it?
+            1, this.options.path, id
+        );
+        
+        return (result[0] === false || result[1] === false) ? null : {
+            id: id,
+            score: parseInt(result[0], 10),
+            rank: result[1]+1
+        };
+    }
+
+    /**
      * Retrieve the score of an entry
      */
     async score(id: ID): Promise<number | null> {

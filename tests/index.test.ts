@@ -75,13 +75,20 @@ describe('Basic leaderboard', () => {
             expect(await lb.rank("non-existing")).toBe(null);
         });
         
+        test("peek", async () => {
+            expect(await lb.peek("foo")).toStrictEqual({ id: "foo", score: 15, rank: 1 });
+            expect(await lb.peek("bar")).toStrictEqual({ id: "bar", score: 10, rank: 2 });
+            expect(await lb.peek("baz")).toStrictEqual({ id: "baz", score: 5, rank: 3 });
+            expect(await lb.peek("non-existing")).toBe(null);
+        });
+        
         test("top 3", async () => {
             let top = await lb.top(3);
             expect(top).toHaveLength(3);
             expect(top[0]).toStrictEqual({ id: "foo", score: 15, rank: 1 });
             expect(top[1]).toStrictEqual({ id: "bar", score: 10, rank: 2 });
             expect(top[2]).toStrictEqual({ id: "baz", score: 5, rank: 3 });
-            
+
             expect(top).toStrictEqual(await lb.top());
         });
 
@@ -108,12 +115,21 @@ describe('Basic leaderboard', () => {
             expect(await lb.rank("non-existing")).toBe(null);
         });
         
+        test("peek", async () => {
+            expect(await lb.peek("foo")).toStrictEqual({ id: "foo", score: 15, rank: 3 });
+            expect(await lb.peek("bar")).toStrictEqual({ id: "bar", score: 10, rank: 2 });
+            expect(await lb.peek("baz")).toStrictEqual({ id: "baz", score: 5, rank: 1 });
+            expect(await lb.peek("non-existing")).toBe(null);
+        });
+
         test("top 3", async () => {
             let top = await lb.top(3);
             expect(top).toHaveLength(3);
             expect(top[0]).toStrictEqual({ id: "baz", score: 5, rank: 1 });
             expect(top[1]).toStrictEqual({ id: "bar", score: 10, rank: 2 });
             expect(top[2]).toStrictEqual({ id: "foo", score: 15, rank: 3 });
+            
+            expect(top).toStrictEqual(await lb.top());
         });
 
         test("list 2-3", async () => {
