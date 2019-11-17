@@ -186,6 +186,7 @@ export default class Leaderboard {
                 `local h=math.min(c, r+ARGV[2])`
             ) +
             `return{l,redis.call('z${this.options.lowToHigh ? '' : 'rev'}range',KEYS[1],l,h,'WITHSCORES')}`,
+            // 289 bytes vs 20 bytes using EVALSHA should consider it
             1, this.options.path, id, distance
         );
 
