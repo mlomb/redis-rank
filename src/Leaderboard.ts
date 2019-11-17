@@ -138,4 +138,11 @@ export default class Leaderboard {
         let result = await this.list(rank, rank);
         return result.length == 0 ? null : result[0];
     }
+
+    /**
+     * Retrieve the the total number of entries
+     */
+    total(): Promise<number> {
+        return this.client.zcard(this.options.path);
+    }
 }

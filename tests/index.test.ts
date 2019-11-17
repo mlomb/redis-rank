@@ -30,17 +30,14 @@ describe('Basic leaderboard', () => {
     };
 
     const checkCommon = () => {
+        test("check ranks invalid", async () => {
+            expect(await lb.rank("non-existing")).toBe(null);
+        });
         test("check scores", async () => {
             expect(await lb.score("foo")).toBe(15);
             expect(await lb.score("bar")).toBe(10);
             expect(await lb.score("baz")).toBe(5);
             expect(await lb.score("non-existing")).toBe(null);
-        });
-        test("check removal", async () => {
-            await lb.set("removal", 42);
-            expect(await lb.score("removal")).toBe(42);
-            await lb.drop("removal");
-            expect(await lb.score("removal")).toBe(null);
         });
         test("check list lengths", async () => {
             expect(await lb.list(1, 1)).toHaveLength(1);
@@ -58,9 +55,31 @@ describe('Basic leaderboard', () => {
             await expect(lb.list(-5, 0)).rejects.toThrow('Out of bounds');
             await expect(lb.list(10, 5)).rejects.toThrow('high must be greater than low');
         });
+        test("peek invalid", async () => {
+            expect(await lb.peek("non-existing")).toBe(null);
+        });
+        test("at invalid", async () => {
+            expect(await lb.at(100)).toBe(null);
+            expect(await lb.at(-1)).toBe(null);
+        });
+        test("top 3 default", async () => {
+            expect(await lb.top(3)).toStrictEqual(await lb.top());
+        });
+
+        test("drop", async () => {
+            await lb.set("removal", 42);
+            expect(await lb.score("removal")).toBe(42);
+            await lb.drop("removal");
+            expect(await lb.score("removal")).toBe(null);
+        });
         test("incr", async () => {
             expect(await lb.incr("bar", 30)).toBe(40); // existing
             expect(await lb.incr("foobar", 20)).toBe(20); // new
+        });
+        test("total", async () => {
+            expect(await lb.total()).toBe(3);
+            await lb.drop("bar");
+            expect(await lb.total()).toBe(2);
         });
     }
     
@@ -76,19 +95,16 @@ describe('Basic leaderboard', () => {
             expect(await lb.rank("foo")).toBe(1);
             expect(await lb.rank("bar")).toBe(2);
             expect(await lb.rank("baz")).toBe(3);
-            expect(await lb.rank("non-existing")).toBe(null);
         });
         
         test("peek", async () => {
             expect(await lb.peek("foo")).toStrictEqual({ id: "foo", score: 15, rank: 1 });
             expect(await lb.peek("bar")).toStrictEqual({ id: "bar", score: 10, rank: 2 });
             expect(await lb.peek("baz")).toStrictEqual({ id: "baz", score: 5, rank: 3 });
-            expect(await lb.peek("non-existing")).toBe(null);
         });
 
         test("at", async () => {
             expect(await lb.at(1)).toStrictEqual({ id: "foo", score: 15, rank: 1 });
-            expect(await lb.at(100)).toBe(null);
         });
         
         test("top 3", async () => {
@@ -97,8 +113,6 @@ describe('Basic leaderboard', () => {
             expect(top[0]).toStrictEqual({ id: "foo", score: 15, rank: 1 });
             expect(top[1]).toStrictEqual({ id: "bar", score: 10, rank: 2 });
             expect(top[2]).toStrictEqual({ id: "baz", score: 5, rank: 3 });
-
-            expect(top).toStrictEqual(await lb.top());
         });
 
         test("list 2-3", async () => {
@@ -121,19 +135,16 @@ describe('Basic leaderboard', () => {
             expect(await lb.rank("foo")).toBe(3);
             expect(await lb.rank("bar")).toBe(2);
             expect(await lb.rank("baz")).toBe(1);
-            expect(await lb.rank("non-existing")).toBe(null);
         });
         
         test("peek", async () => {
             expect(await lb.peek("foo")).toStrictEqual({ id: "foo", score: 15, rank: 3 });
             expect(await lb.peek("bar")).toStrictEqual({ id: "bar", score: 10, rank: 2 });
             expect(await lb.peek("baz")).toStrictEqual({ id: "baz", score: 5, rank: 1 });
-            expect(await lb.peek("non-existing")).toBe(null);
         });
 
         test("at", async () => {
             expect(await lb.at(1)).toStrictEqual({ id: "baz", score: 5, rank: 1 });
-            expect(await lb.at(100)).toBe(null);
         });
 
         test("top 3", async () => {
@@ -142,8 +153,6 @@ describe('Basic leaderboard', () => {
             expect(top[0]).toStrictEqual({ id: "baz", score: 5, rank: 1 });
             expect(top[1]).toStrictEqual({ id: "bar", score: 10, rank: 2 });
             expect(top[2]).toStrictEqual({ id: "foo", score: 15, rank: 3 });
-            
-            expect(top).toStrictEqual(await lb.top());
         });
 
         test("list 2-3", async () => {
