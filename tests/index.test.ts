@@ -24,9 +24,9 @@ describe('Basic leaderboard', () => {
     // | baz  | 5     | 3    | 1                |
     // +------+-------+------+------------------+
     const sampleData = async () => {
-        await lb.set("foo", 15);
-        await lb.set("bar", 10);
-        await lb.set("baz", 5);
+        await lb.add("foo", 15);
+        await lb.add("bar", 10);
+        await lb.add("baz", 5);
     };
 
     const checkCommon = () => {
@@ -65,10 +65,10 @@ describe('Basic leaderboard', () => {
         test("top 3 default", async () => {
             expect(await lb.top(3)).toStrictEqual(await lb.top());
         });
-        test("drop", async () => {
-            await lb.set("removal", 42);
+        test("remove", async () => {
+            await lb.add("removal", 42);
             expect(await lb.score("removal")).toBe(42);
-            await lb.drop("removal");
+            await lb.remove("removal");
             expect(await lb.score("removal")).toBe(null);
         });
         test("incr", async () => {
@@ -77,7 +77,7 @@ describe('Basic leaderboard', () => {
         });
         test("total", async () => {
             expect(await lb.total()).toBe(3);
-            await lb.drop("bar");
+            await lb.remove("bar");
             expect(await lb.total()).toBe(2);
         });
         test("clear", async () => {
@@ -89,7 +89,7 @@ describe('Basic leaderboard', () => {
             beforeEach(async () => {
                 lb.clear();
                 for(let i = 0; i <= 20; i++) // so 0th, 1th ... 19th, 20th
-                    await lb.set(`${i}th`, i);
+                    await lb.add(`${i}th`, i);
             });
             test("around invalid", async () => {
                 expect(await lb.around('non-existing', 5)).toHaveLength(0);

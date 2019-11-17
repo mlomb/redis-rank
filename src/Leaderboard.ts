@@ -38,7 +38,7 @@ export default class Leaderboard {
     /**
      * Create or update the score of an entry
      */
-    async set(id: ID, score: number): Promise<void> {
+    async add(id: ID, score: number): Promise<void> {
         await this.client.zadd(this.options.path, score.toString(), id);
     }
     
@@ -55,7 +55,7 @@ export default class Leaderboard {
     /**
      * Removes an entry from the leaderboard
      */
-    drop(id: ID): Promise<void> {
+    remove(id: ID): Promise<void> {
         return this.client.zrem(this.options.path, id);
     }
     
