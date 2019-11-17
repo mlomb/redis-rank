@@ -58,6 +58,10 @@ describe('Basic leaderboard', () => {
             await expect(lb.list(-5, 0)).rejects.toThrow('Out of bounds');
             await expect(lb.list(10, 5)).rejects.toThrow('high must be greater than low');
         });
+        test("incr", async () => {
+            expect(await lb.incr("bar", 30)).toBe(40); // existing
+            expect(await lb.incr("foobar", 20)).toBe(20); // new
+        });
     }
     
     describe('high to low', () => {

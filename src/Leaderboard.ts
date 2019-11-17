@@ -36,10 +36,20 @@ export default class Leaderboard {
     }
 
     /**
-     * Set a score
+     * Create or update the score of an entry
      */
     async set(id: ID, score: number): Promise<void> {
         await this.client.zadd(this.options.path, score.toString(), id);
+    }
+    
+    /**
+     * Increment/decrement the score of an entry by an amount
+     * If the entry does not exist, it is added with amount as the score
+     * @returns the updated score
+     */
+    async incr(id: ID, amount: number): Promise<number> {
+        let score = await this.client.zincrby(this.options.path, amount, id);
+        return parseInt(score, 10);
     }
     
     /**
@@ -60,7 +70,7 @@ export default class Leaderboard {
             `}`, // 83 bytes vs 20 bytes using EVALSHA maybe worth it?
             1, this.options.path, id
         );
-        
+
         return (result[0] === false || result[1] === false) ? null : {
             id: id,
             score: parseInt(result[0], 10),
@@ -72,16 +82,16 @@ export default class Leaderboard {
      * Retrieve the score of an entry
      */
     async score(id: ID): Promise<number | null> {
-        let result = await this.client.zscore(this.options.path, id);
-        return result === null ? null : parseInt(result, 10);
+        let score = await this.client.zscore(this.options.path, id);
+        return score === null ? null : parseInt(score, 10);
     }
 
     /**
      * Retrieve the one-based rank of an entry
      */
     async rank(id: ID): Promise<number | null> {
-        let result = await this.client[this.options.lowToHigh ? 'zrank' : 'zrevrank'](this.options.path, id);
-        return result === null ? null : result+1;
+        let rank = await this.client[this.options.lowToHigh ? 'zrank' : 'zrevrank'](this.options.path, id);
+        return rank === null ? null : rank+1;
     }
 
     /**
