@@ -146,6 +146,27 @@ export default class Leaderboard {
         return result.length == 0 ? null : result[0];
     }
 
+    /**
+     * Retrieve the entries around an entry
+     * 
+     * Example with distance = 4:
+     * ```
+     * +-----+-----+-----+-----+-----+-----+-----+-----+-----+------+
+     * | 1st | 2nd | 3rd | 4th | 5th | 6th | 7th | 8th | 9th | 10th |
+     * +-----+-----+-----+-----+-----+-----+-----+-----+-----+------+
+     *                ↑
+     *         queried entry
+     * 
+     * Without fillBorders: [ 1st, 2nd, 3rd, 4th, 5th, 6th, 7th ] // 2 + 1 + 4 = 7 elements
+     * With fillBorders:    [ 1st, 2nd, 3rd, 4th, 5th, 6th, 7th, 8th, 9th ] // 2 + 1 + 6 = 9 elements
+     * ```
+     * 
+     * @param distance number of entries at each side of the queried entry
+     * @param fillBorders whether to include entries at the other side if the entry
+     *                    is too close to one of the borders. In other words, it always
+     *                    makes sure to have at lease 2*distance+1 entries (if there are
+     *                    enough in the leaderboard)
+     */
     async around(id: ID, distance: number, fillBorders: boolean = false): Promise<Entry[]> {
         if(distance < 0)
             return [];
