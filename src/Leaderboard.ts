@@ -126,4 +126,16 @@ export default class Leaderboard {
     async top(max: number = 10): Promise<Entry[]> {
         return this.list(1, max);
     }
+    
+    /**
+     * Retrieve the entry at a specific rank
+     * This function is an alias for list(rank, rank)[0]
+     * @param rank rank to query
+     */
+    async at(rank: number): Promise<Entry | null> {
+        if(rank <= 0)
+            return null;
+        let result = await this.list(rank, rank);
+        return result.length == 0 ? null : result[0];
+    }
 }

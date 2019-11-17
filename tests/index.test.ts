@@ -85,6 +85,11 @@ describe('Basic leaderboard', () => {
             expect(await lb.peek("baz")).toStrictEqual({ id: "baz", score: 5, rank: 3 });
             expect(await lb.peek("non-existing")).toBe(null);
         });
+
+        test("at", async () => {
+            expect(await lb.at(1)).toStrictEqual({ id: "foo", score: 15, rank: 1 });
+            expect(await lb.at(100)).toBe(null);
+        });
         
         test("top 3", async () => {
             let top = await lb.top(3);
@@ -124,6 +129,11 @@ describe('Basic leaderboard', () => {
             expect(await lb.peek("bar")).toStrictEqual({ id: "bar", score: 10, rank: 2 });
             expect(await lb.peek("baz")).toStrictEqual({ id: "baz", score: 5, rank: 1 });
             expect(await lb.peek("non-existing")).toBe(null);
+        });
+
+        test("at", async () => {
+            expect(await lb.at(1)).toStrictEqual({ id: "baz", score: 5, rank: 1 });
+            expect(await lb.at(100)).toBe(null);
         });
 
         test("top 3", async () => {
