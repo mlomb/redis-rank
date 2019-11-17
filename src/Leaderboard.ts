@@ -55,8 +55,8 @@ export default class Leaderboard {
     /**
      * Removes an entry from the leaderboard
      */
-    async drop(id: ID): Promise<void> {
-        await this.client.zrem(this.options.path, id);
+    drop(id: ID): Promise<void> {
+        return this.client.zrem(this.options.path, id);
     }
 
     /**
@@ -123,7 +123,7 @@ export default class Leaderboard {
      * This function is an alias for list(1, max)
      * @param max max number of entries to return
      */
-    async top(max: number = 10): Promise<Entry[]> {
+    top(max: number = 10): Promise<Entry[]> {
         return this.list(1, max);
     }
     
