@@ -15,7 +15,7 @@ export type Entry = {
     rank: number
 }
 
-export default class Leaderboard {
+export class Leaderboard {
     /** ioredis client */
     private client: Redis;
     /** options */

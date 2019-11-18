@@ -1,5 +1,2 @@
-import Leaderboard from './Leaderboard';
-
-export {
-    Leaderboard
-}
+export * from './Leaderboard';
+export * from './PeriodicLeaderboard';
