@@ -209,4 +209,12 @@ export class Leaderboard {
     total(): Promise<number> {
         return this.client.zcard(this.options.path);
     }
+
+    getPath(): KeyType {
+        return this.options.path;
+    }
+
+    isLowToHigh(): boolean {
+        return this.options.lowToHigh;
+    }
 }

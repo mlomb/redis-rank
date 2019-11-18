@@ -121,6 +121,10 @@ describe('Basic leaderboard', () => {
 
         checkCommon();
 
+        test("check order", async () => {
+            expect(lb.isLowToHigh()).toBe(false);
+        });
+
         test("check ranks", async () => {
             expect(await lb.rank("foo")).toBe(1);
             expect(await lb.rank("bar")).toBe(2);
@@ -160,6 +164,10 @@ describe('Basic leaderboard', () => {
         });
         
         checkCommon();
+
+        test("check order", async () => {
+            expect(lb.isLowToHigh()).toBe(true);
+        });
 
         test("check ranks", async () => {
             expect(await lb.rank("foo")).toBe(3);

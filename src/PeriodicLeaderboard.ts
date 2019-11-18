@@ -1,4 +1,4 @@
-import { Leaderboard } from './Leaderboard';
+import { Leaderboard, LeaderboardOptions } from './Leaderboard';
 import { Redis, KeyType } from 'ioredis';
 import moment from 'moment';
 
@@ -8,24 +8,34 @@ import moment from 'moment';
 export type TimeFrame = 'minute' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'all-time';
 
 export type PeriodicLeaderboardOptions = {
+    path: string,
     timeFrame: TimeFrame,
-    now(): Date
+    now(): Date,
+    leaderboardOptions: LeaderboardOptions
 }
 
 export class PeriodicLeaderboard {
     private client: Redis;
     private options: PeriodicLeaderboardOptions;
     private format: string;
+    private leaderboard: (Leaderboard | null) = null;
 
     constructor(client: Redis, options: Partial<PeriodicLeaderboardOptions> = {}) {
         this.client = client;
         this.options = Object.assign({
+            path: "plb",
             timeFrame: 'all-time',
-            now: () => new Date
+            now: () => new Date,
+            leaderboardOptions: null
         }, options);
         this.format = PeriodicLeaderboard.momentFormat(this.options.timeFrame);
     }
 
+    /**
+     * Returns the appropiate moment format for a Time Frame
+     * 
+     * e.g. for 'minute' [y]YYYY-[m]MM-[w]ww-[d]DD-[h]HH-[m]mm
+     */
     private static momentFormat(timeFrame: TimeFrame): string {
         if(timeFrame == 'all-time')
             return '[all]';
@@ -44,10 +54,44 @@ export class PeriodicLeaderboard {
     }
 
     /**
+     * Get a the key of the leaderboard in the provided date
+     */
+    getKey(date: Date): string {
+        return moment(date).format(this.format);
+    }
+
+    /**
+     * Get a the leaderboard in a specific date
+     */
+    get(date: Date): Leaderboard {
+        return new Leaderboard(this.client, {
+            path: `${this.options.path}:${this.getKey(date)}`,
+            ...this.options.leaderboardOptions
+        });
+    }
+
+    /**
      * Returns the key of the leaderboard that
      * should be used based on the current time
      */
     getCurrentKey(): string {
-        return moment(this.options.now()).format(this.format);
+        return this.getKey(this.options.now());
+    }
+
+    /**
+     * Get the current leaderboard
+     */
+    getCurrent(): Leaderboard {
+        let path = `${this.options.path}:${this.getCurrentKey()}`;
+        
+        if(this.leaderboard === null || this.leaderboard.getPath() !== path) {
+            delete this.leaderboard;
+            this.leaderboard = new Leaderboard(this.client, {
+                path: path,
+                ...this.options.leaderboardOptions
+            });
+        }
+
+        return this.leaderboard;
     }
 }
