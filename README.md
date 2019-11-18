@@ -11,6 +11,7 @@ Back-end to generate and manage leaderboards using [Redis](https://redis.io/). W
 All the library is promise based.
 
 * Plain Leaderboards. Insert and update entries. List them in multiple ways.
+* Guaranteed *at most* one trip to Redis on each function call, taking advantage of Redis's EVAL.
 * *PLANNED*: Periodic Leaderboards (daily, weekly, monthly, all-time)
 * *PLANNED*: Matrix Leaderboards (multiple dimensions)
 * *PLANNED*: Archive (export) leaderboards to another database for long-term storage
