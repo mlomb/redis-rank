@@ -93,6 +93,7 @@ lb.at(1); // get entry at a specific rank: { id: "dave", ... }
 lb.list(5, 10); // entries between ranks 5 and 10 inclusive
 lb.top(10); // the top 10 entries. Alias for list(1, max)
 lb.around("id", 10); // get 10 entries above and below the queried entry
+lb.around("id", 10, true); // pass true to make sure you get 10+1+10 entries even near the borders
 
 // remove all entries
 lb.clear();
