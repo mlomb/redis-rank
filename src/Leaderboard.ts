@@ -1,15 +1,15 @@
 import { Redis, KeyType } from 'ioredis';
 
-type ID = string;
+export type ID = string;
 
-type LeaderboardOptions = {
+export type LeaderboardOptions = {
     /** sorted set key */
     path: KeyType,
     /** lower scores are better */
     lowToHigh: boolean
 }
 
-type Entry = {
+export type Entry = {
     id: ID,
     score: number,
     rank: number
@@ -17,9 +17,9 @@ type Entry = {
 
 export default class Leaderboard {
     /** ioredis client */
-    client: Redis;
+    private client: Redis;
     /** options */
-    options: LeaderboardOptions;
+    private options: LeaderboardOptions;
 
     /**
      * Create a new leaderboard

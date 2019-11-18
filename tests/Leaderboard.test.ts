@@ -13,7 +13,6 @@ beforeEach((done) => {
 describe('Basic leaderboard', () => {
     let lb: Leaderboard;
 
-
     // +------+-------+------+------------------+
     // | name | score | rank | rank (lowToHigh) |
     // +------+-------+------+------------------+
