@@ -31,7 +31,7 @@ export class PeriodicLeaderboard {
             return '[all]';
         
         const frames = [ 'yearly', 'monthly', 'weekly', 'daily', 'hourly', 'minute'];
-        const format = ['[y]YYYY',   '[m]MM',   '[w]w',  '[d]D',  '[h]HH',  '[m]mm'];
+        const format = ['[y]YYYY',   '[m]MM',  '[w]ww', '[d]DD',  '[h]HH',  '[m]mm'];
 
         return format.slice(0, frames.indexOf(timeFrame) + 1).join('-');
     }

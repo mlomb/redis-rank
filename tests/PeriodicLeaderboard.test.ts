@@ -24,10 +24,10 @@ describe('Periodic leaderboard', () => {
         checkFormat("all-time", "[all]");
         checkFormat("yearly",   "[y]YYYY");
         checkFormat("monthly",  "[y]YYYY-[m]MM");
-        checkFormat("weekly",   "[y]YYYY-[m]MM-[w]w");
-        checkFormat("daily",    "[y]YYYY-[m]MM-[w]w-[d]D");
-        checkFormat("hourly",   "[y]YYYY-[m]MM-[w]w-[d]D-[h]HH");
-        checkFormat("minute",   "[y]YYYY-[m]MM-[w]w-[d]D-[h]HH-[m]mm");
+        checkFormat("weekly",   "[y]YYYY-[m]MM-[w]ww");
+        checkFormat("daily",    "[y]YYYY-[m]MM-[w]ww-[d]DD");
+        checkFormat("hourly",   "[y]YYYY-[m]MM-[w]ww-[d]DD-[h]HH");
+        checkFormat("minute",   "[y]YYYY-[m]MM-[w]ww-[d]DD-[h]HH-[m]mm");
     });
 
     describe('key generation', () => {
