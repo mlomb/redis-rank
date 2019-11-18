@@ -99,6 +99,19 @@ lb.clear();
 
 Note: most of the methods will return `null` if the entry is not found.
 
+### Leaderboard Options
+
+Available options for Leaderboard, along with their defaults.
+
+```javascript
+new Leaderboard(redis, {
+    // redis key to store the sorted set
+    path: "lb",
+    // inverse leaderboard: true if lower scores are better
+    lowToHigh: false
+});
+```
+
 ## API
 You can [peek at the documented code](src/Leaderboard.ts) for more information.  
 TypeScript definitions are available.
