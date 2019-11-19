@@ -1,4 +1,4 @@
-import { Redis, KeyType } from 'ioredis';
+import { Redis, KeyType, Pipeline } from 'ioredis';
 
 export type ID = string;
 
@@ -14,7 +14,7 @@ export type Entry = {
     id: ID,
     /** score */
     score: number,
-    /** ranking  */
+    /** ranking */
     rank: number
 }
 
@@ -43,6 +43,15 @@ export class Leaderboard {
      */
     async add(id: ID, score: number): Promise<void> {
         await this.client.zadd(this.options.path, score.toString(), id);
+    }
+
+    /**
+     * @see add
+     * 
+     * Uses IORedis.Pipeline to be able to batch multiple commands
+     */
+    addMulti(id: ID, score: number, pipeline: Pipeline): Pipeline {
+        return pipeline.zadd(this.options.path, score.toString(), id);
     }
     
     /**

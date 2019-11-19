@@ -10,12 +10,12 @@ Back-end to generate and manage leaderboards using [Redis](https://redis.io/). W
 
 All the library is promise based.
 
-* Plain Leaderboards: Insert and update entries. List them in multiple ways.
-* Periodic Leaderboards: automatically create leaderboards for different time spans (*supported: minute, hourly, daily, weekly, monthly, yearly, all-time*)
-* Guaranteed *at most* one trip to Redis on each function call, taking advantage of Redis's EVAL.
+* **Plain Leaderboards**: insert and update entries. List them in multiple ways.
+* **Periodic Leaderboards**: automatically create leaderboards for different time spans (*supported: minute, hourly, daily, weekly, monthly, yearly, all-time*)
+* **Leaderboard Matrix**: combine multiple leaderboards with dimensions and features. Update them together with only one call. [More info](#Leaderboard%20Matrix).
+* Guaranteed *at most* one trip to Redis on each function call, taking advantage of Redis's `EVAL` and `MULTI`.
 
 Planned features:
-* *PLANNED*: Matrix Leaderboards (multiple dimensions)
 * *PLANNED*: Archive (export) leaderboards to another database for long-term storage
 
 # Quick Start
@@ -135,6 +135,96 @@ let lb = plb.getCurrent();
 lb.add("pepe", 99);
 lb.top(10);
 // etc
+```
+
+## Leaderboard Matrix
+
+A matrix of leaderboards is defined by its dimensions and features. A **dimension** represents an abstract group (global, region, map) asocciated with a time frame (all-time, weekly). A **feature** is a kind of leaderboad and score, for example, a basic numeric score, the number of kills, most seconds survived, etc.
+
+Let's say we want to create a leaderboard for a game with 5 dimensions:
+- **global**: a permanent, `all-time` leaderboard
+- **`monthly`**, **`weekly`**, **`daily`**: dynamic, periodic leaderboards
+- **US**: a permanent, `all-time`, country specific leaderboard 
+
+And some features, lets say:
+- **kills**: number of enemies killed (higher is better)
+- **coins**: number or coins collected (higher is better)
+- **time**: time (in seconds) taken to complete a level (lower is better)
+
+The leaderboard matrix for the game would look like this:
+
+|         | kills  | coins  | time   |
+|---------|--------|--------|--------|
+| global  | \.\.\. | \.\.\. | \.\.\. |
+| monthly | \.\.\. | \.\.\. | \.\.\. |
+| weekly  | \.\.\. | \.\.\. | \.\.\. |
+| daily   | \.\.\. | \.\.\. | \.\.\. |
+| US      | \.\.\. | \.\.\. | \.\.\. |
+
+And in code, this looks like:
+
+```javascript
+let mlb = new LeaderboardMatrix(redis, {
+  path: 'mygame',
+  dimensions: [{
+    name: 'global',
+    timeFrame: 'all-time'
+  }, {
+    name: 'monthly',
+    timeFrame: 'monthly'
+  }, {
+    name: 'weekly',
+    timeFrame: 'weekly'
+  }, {
+    name: 'daily',
+    timeFrame: 'daily'
+  }, {
+    name: 'US',
+    timeFrame: 'all-time'
+  }],
+  features: [{
+    name: 'kills'
+  }, {
+    name: 'coins'
+  }, {
+    name: 'time',
+    options: { lowToHigh: true }
+  }]
+});
+```
+
+To add a new entry for the leaderboards you **don't** have to retrieve every leaderboard and call `add` on each one. You can use the `add` function of the `LeaderboardMatrix` object:
+```javascript
+mlb.add( // returns a promise
+    "pepe", // id
+    {
+        // features
+        // you can list some or all of them
+        // if you skip some features the corresponding
+        // columns will be ignored
+        kills: 36,
+        coins: 92,
+        time: 342
+    }, [
+        // dimensions
+        // also you can skip dimensions if they don't apply
+        'global',
+        'monthly',
+        'weekly',
+        'daily',
+        // this is not an US player so don't add it to that row
+        //'US'
+    ]
+);
+```
+
+To access a single leaderboard you can use the `get` function:
+```javascript
+let lb = mlb.get('global', 'kills');
+if(lb) { // may be null if the dimension/feature is invalid
+    // use lb as any other Leaderboard
+    lb.top(10);
+}
 ```
 
 ## API

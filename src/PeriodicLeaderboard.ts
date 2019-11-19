@@ -1,5 +1,5 @@
 import { Leaderboard, LeaderboardOptions } from './Leaderboard';
-import { Redis, KeyType } from 'ioredis';
+import { Redis } from 'ioredis';
 import moment from 'moment';
 
 /**
@@ -15,7 +15,7 @@ export type PeriodicLeaderboardOptions = {
     /** custom function to evaluate the current time */
     now(): Date,
     /** underlying leaderboard options */
-    leaderboardOptions: LeaderboardOptions
+    leaderboardOptions?: LeaderboardOptions
 }
 
 export class PeriodicLeaderboard {
@@ -95,8 +95,8 @@ export class PeriodicLeaderboard {
         if(this.leaderboard === null || this.leaderboard.getPath() !== path) {
             delete this.leaderboard;
             this.leaderboard = new Leaderboard(this.client, {
-                path: path,
-                ...this.options.leaderboardOptions
+                ...this.options.leaderboardOptions,
+                path: path
             });
         }
 
