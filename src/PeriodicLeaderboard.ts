@@ -8,16 +8,24 @@ import moment from 'moment';
 export type TimeFrame = 'minute' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'all-time';
 
 export type PeriodicLeaderboardOptions = {
+    /** base key to store the leaderboards (plb:<time key>) */
     path: string,
+    /** leaderboard cycle */
     timeFrame: TimeFrame,
+    /** custom function to evaluate the current time */
     now(): Date,
+    /** underlying leaderboard options */
     leaderboardOptions: LeaderboardOptions
 }
 
 export class PeriodicLeaderboard {
+    /** ioredis client */
     private client: Redis;
+    /** options */
     private options: PeriodicLeaderboardOptions;
+    /** cached Time Frame format */
     private format: string;
+    /** active leaderboard */
     private leaderboard: (Leaderboard | null) = null;
 
     constructor(client: Redis, options: Partial<PeriodicLeaderboardOptions> = {}) {
@@ -54,7 +62,7 @@ export class PeriodicLeaderboard {
     }
 
     /**
-     * Get a the key of the leaderboard in the provided date
+     * Get a the key of the leaderboard in a specific date
      */
     getKey(date: Date): string {
         return moment(date).format(this.format);
@@ -79,7 +87,7 @@ export class PeriodicLeaderboard {
     }
 
     /**
-     * Get the current leaderboard
+     * Get the leaderboard based on the current time
      */
     getCurrent(): Leaderboard {
         let path = `${this.options.path}:${this.getCurrentKey()}`;

@@ -10,8 +10,11 @@ export type LeaderboardOptions = {
 }
 
 export type Entry = {
+    /** identifier */
     id: ID,
+    /** score */
     score: number,
+    /** ranking  */
     rank: number
 }
 
@@ -210,10 +213,16 @@ export class Leaderboard {
         return this.client.zcard(this.options.path);
     }
 
+    /**
+     * Key of the sorted set in Redis
+     */
     getPath(): KeyType {
         return this.options.path;
     }
 
+    /**
+     * Is this leaderboard ranking from lower to higher scores
+     */
     isLowToHigh(): boolean {
         return this.options.lowToHigh;
     }
