@@ -55,7 +55,14 @@ let ioredis_client = new Redis({
   port: 6379
 });
 // create a leaderboard
-let lb = new RedisRank.Leaderboard(ioredis_client);
+let lb = new Leaderboard(ioredis_client, {
+    /* optional options */
+
+    // redis key to store the sorted set
+    path: "lb",
+    // inverse leaderboard: true if lower scores are better
+    lowToHigh: false
+});
 ```
 
 ## Basic usage
@@ -100,23 +107,12 @@ lb.clear();
 
 Note: most of the methods will return `null` if the entry is not found.
 
-### Leaderboard Options
-
-Available options for Leaderboard, along with their defaults.
-
-```javascript
-new Leaderboard(redis, {
-    // redis key to store the sorted set
-    path: "lb",
-    // inverse leaderboard: true if lower scores are better
-    lowToHigh: false
-});
-```
-
 ## Periodic Leaderboard
 
 ```javascript
 let plb = new PeriodicLeaderboard(redis, {
+    /* optional options */
+
     // base key to store the leaderboards (plb:<time key>)
     path: "plb",
     // leaderboard cycle
@@ -138,6 +134,7 @@ let lb = plb.getCurrent();
 // now use lb as any other Leaderboard
 lb.add("pepe", 99);
 lb.top(10);
+// etc
 ```
 
 ## API
