@@ -1,6 +1,5 @@
 import { Redis } from 'ioredis';
 import { PeriodicLeaderboard, TimeFrame } from '../src/index';
-import { labeledStatement } from '@babel/types';
 
 let rc: Redis;
 
@@ -78,6 +77,7 @@ describe('Periodic leaderboard', () => {
             }
         });
         expect(plb.getCurrent().getPath()).toBe('test:y2019-m11');
+        expect(plb.getCurrent().getPath()).toBe('test:y2019-m12');
         expect(plb.getCurrent().getPath()).toBe('test:y2019-m12');
     });
 
