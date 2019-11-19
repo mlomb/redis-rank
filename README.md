@@ -118,7 +118,7 @@ let plb = new PeriodicLeaderboard(redis, {
     // leaderboard cycle
     timeFrame: 'all-time', // 'minute' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'all-time'
     // you can also provide a custom function to evaluate the current time
-    now(): () => new Date()),
+    now(): () => new Date(),
     leaderboardOptions: { // LeaderboardOptions
         lowToHigh: false,
         ...
