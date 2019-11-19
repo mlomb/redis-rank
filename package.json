@@ -1,6 +1,6 @@
 {
   "name": "redis-rank",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Back-end to generate and manage leaderboards using Redis. Written in TypeScript and Promise-based.",
   "keywords": [
     "redis",
@@ -12,7 +12,7 @@
     "leaderboard",
     "games",
     "promises",
-    "typescript"
+    "periodic"
   ],
   "repository": "https://github.com/mlomb/redis-rank",
   "homepage": "https://github.com/mlomb/redis-rank",

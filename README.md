@@ -10,9 +10,11 @@ Back-end to generate and manage leaderboards using [Redis](https://redis.io/). W
 
 All the library is promise based.
 
-* Plain Leaderboards. Insert and update entries. List them in multiple ways.
+* Plain Leaderboards: Insert and update entries. List them in multiple ways.
+* Periodic Leaderboards: automatically create leaderboards for different time spans (*supported: minute, hourly, daily, weekly, monthly, yearly, all-time*)
 * Guaranteed *at most* one trip to Redis on each function call, taking advantage of Redis's EVAL.
-* *PLANNED*: Periodic Leaderboards (daily, weekly, monthly, all-time)
+
+Planned features:
 * *PLANNED*: Matrix Leaderboards (multiple dimensions)
 * *PLANNED*: Archive (export) leaderboards to another database for long-term storage
 
@@ -24,19 +26,29 @@ All the library is promise based.
 $ npm install redis-rank
 ```
 
-Redis 2.6.12 or newer is required.
-[ioredis](https://github.com/luin/ioredis) package is a dependency.
+Redis 2.6.12 or newer is required. Packages [ioredis](https://www.npmjs.com/package/ioredis) and [moment](https://www.npmjs.com/package/moment) are dependencies.
 
 ## Import and connect
 
-You must provide the [ioredis](https://github.com/luin/ioredis) connection object.  
-See [here](https://github.com/luin/ioredis#connect-to-redis) for more information on how to set it up.
+First import/require `ioredis` and `redis-rank`.
 
 ES5
 ```javascript
 const Redis = require('ioredis');
 const RedisRank = require('redis-rank');
+const Leaderboard = RedisRank.Leaderboard;
+```
+ES6
+```javascript
+import { Redis } from 'ioredis';
+import { Leaderboard } from 'redis-rank';
+```
 
+Then create a Leaderboard.
+You will have to provide a [ioredis](https://github.com/luin/ioredis) connection object.
+See [here](https://github.com/luin/ioredis#connect-to-redis) for more information on how to set it up.
+
+```javascript
 // setup connection
 let ioredis_client = new Redis({
   host: "127.0.0.1",
@@ -44,19 +56,6 @@ let ioredis_client = new Redis({
 });
 // create a leaderboard
 let lb = new RedisRank.Leaderboard(ioredis_client);
-```
-ES6
-```javascript
-import { Redis } from 'ioredis';
-import { Leaderboard } from 'redis-rank';
-
-// setup connection
-let ioredis_client = new Redis({
-  host: "127.0.0.1",
-  port: 6379
-});
-// create a leaderboard
-let lb = new Leaderboard(ioredis_client);
 ```
 
 ## Basic usage
@@ -112,6 +111,33 @@ new Leaderboard(redis, {
     // inverse leaderboard: true if lower scores are better
     lowToHigh: false
 });
+```
+
+## Periodic Leaderboard
+
+```javascript
+let plb = new PeriodicLeaderboard(redis, {
+    // base key to store the leaderboards (plb:<time key>)
+    path: "plb",
+    // leaderboard cycle
+    timeFrame: 'all-time', // 'minute' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'all-time'
+    // you can also provide a custom function to evaluate the current time
+    now(): () => new Date()),
+    leaderboardOptions: { // LeaderboardOptions
+        lowToHigh: false,
+        ...
+    }
+});
+```
+
+Then every time you need it, call `getCurrent` to get the corresponding Leaderboard for the current time.
+
+```javascript
+let lb = plb.getCurrent();
+
+// now use lb as any other Leaderboard
+lb.add("pepe", 99);
+lb.top(10);
 ```
 
 ## API
