@@ -1,6 +1,6 @@
 {
   "name": "redis-rank",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Back-end to generate and manage leaderboards using Redis. Written in TypeScript and Promise-based.",
   "keywords": [
     "redis",
