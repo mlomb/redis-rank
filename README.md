@@ -233,11 +233,13 @@ TypeScript definitions are available.
 
 ## Running tests
 
-No Redis server is required. [ioredis-mock](https://www.npmjs.com/package/ioredis-mock) is used to mock Redis.
+A Redis server with default configuration is expected in localhost. Note: **The database will be flushed**.
 
 ```shell
 $ npm test
 ```
+
+I tried with [ioredis-mock](https://www.npmjs.com/package/ioredis-mock) but it has some problems with lua scripts.
 
 # License
 

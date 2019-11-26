@@ -1,14 +1,5 @@
-import { Redis } from 'ioredis';
 import { LeaderboardMatrix, Leaderboard } from '../src/index';
-
-let rc: Redis;
-
-beforeAll(() => {
-    rc = new (require('ioredis-mock'))();
-});
-beforeEach((done) => {
-    rc.flushall(done);
-});
+import rc from './redis';
 
 describe('Leaderboard matrix', () => {
     describe('default', () => {

@@ -1,14 +1,5 @@
-import { Redis } from 'ioredis';
 import { PeriodicLeaderboard, TimeFrame } from '../src/index';
-
-let rc: Redis;
-
-beforeAll(() => {
-    rc = new (require('ioredis-mock'))();
-});
-beforeEach((done) => {
-    rc.flushall(done);
-});
+import rc from './redis';
 
 describe('Periodic leaderboard', () => {
     const TEST_DATE = new Date(
