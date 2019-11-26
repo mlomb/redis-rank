@@ -204,7 +204,7 @@ export class Leaderboard {
 
         let entries: Entry[] = [];
         let rank = 0;
-        for (let i = 1; i < result[1].length; i += 2) {
+        for (let i = 0; i < result[1].length; i += 2) {
             entries.push({
                 id: result[1][i],
                 score: parseInt(result[1][i + 1], 10),
