@@ -218,6 +218,20 @@ mlb.add( // returns a promise
 );
 ```
 
+To list entries within the matrix, yo can use `top` and `around` based on a dimension like this:
+```javascript
+lm.top('weekly', 'kills', 3);
+// example
+[
+    { id: 'pepe', rank: 1, kills: 36, coins: 92, time: 342 },
+    { id: '....', rank: 2, kills: 27, coins: 123, time: 295 },
+    { id: '....', rank: 3, kills: 16, coins: 77, time: 420 }
+]
+
+// also
+lm.around('monthly', 'time', pepe, 15);
+```
+
 To access a single leaderboard you can use the `get` function:
 ```javascript
 let lb = mlb.get('global', 'kills');
