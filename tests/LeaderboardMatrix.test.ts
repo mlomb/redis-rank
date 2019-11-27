@@ -109,6 +109,82 @@ describe('Leaderboard matrix', () => {
                 expect(lm.get("globaldim", "feat_non_existing")).toBe(null);
             });
         });
+
+        describe('query', () => {
+            beforeEach(async () => {
+                await lm.add("foo", { feat1: 1, feat2: 4, feat3: 7 });
+                await lm.add("bar", { feat1: 2, feat2: 5, feat3: 8 });
+                await lm.add("baz", { feat1: 3, feat2: 6, feat3: 9 });
+            });
+
+            describe('list', () => {
+                test('lengths', async () => {
+                    expect(await lm.list("globaldim", "feat1", 1, 1)).toHaveLength(1);
+                    expect(await lm.list("globaldim", "feat2", 1, 2)).toHaveLength(2);
+                    expect(await lm.list("globaldim", "feat3", 1, 3)).toHaveLength(3);
+                    expect(await lm.list("globaldim", "feat1", 2, 1)).toHaveLength(0);
+                });
+                
+                test('invalid', async () => {
+                    expect(await lm.list("globaldim", "invalid_feat", 1, 3)).toHaveLength(0);
+                    expect(await lm.list("invalid_dim", "feat1", 1, 3)).toHaveLength(0);
+                });
+
+                test('data', async () => {
+                    expect(await lm.top("globaldim", "feat1", 3)).toStrictEqual([
+                        { id: 'baz', rank: 1, feat1: 3, feat2: 6, feat3: 9 },
+                        { id: 'bar', rank: 2, feat1: 2, feat2: 5, feat3: 8 },
+                        { id: 'foo', rank: 3, feat1: 1, feat2: 4, feat3: 7 },
+                    ]);
+                });
+            });
+            
+            // the code of aroundRange range is extensively tested on Leaderboard.test.js
+            describe('around', () => {
+                test('data', async () => {
+                    expect(await lm.around("globaldim", "feat1", 'bar', 2)).toStrictEqual([
+                        { id: 'baz', rank: 1, feat1: 3, feat2: 6, feat3: 9 },
+                        { id: 'bar', rank: 2, feat1: 2, feat2: 5, feat3: 8 },
+                        { id: 'foo', rank: 3, feat1: 1, feat2: 4, feat3: 7 },
+                    ]);
+                });
+
+                test('lengths', async () => {
+                    expect(await lm.around("globaldim", "feat1", "bar", 0)).toHaveLength(1);
+                    expect(await lm.around("globaldim", "feat1", "bar", 1)).toHaveLength(3);
+                    expect(await lm.around("globaldim", "feat1", "baz", 1)).toHaveLength(2);
+                    expect(await lm.around("globaldim", "feat1", "foo", 1)).toHaveLength(2);
+                    expect(await lm.around("globaldim", "feat1", "baz", 1, true)).toHaveLength(3);
+                    expect(await lm.around("globaldim", "feat1", "foo", 1, true)).toHaveLength(3);
+                });
+                
+                test('invalid', async () => {
+                    expect(await lm.around("globaldim", "invalid_feat", "bar", 5)).toHaveLength(0);
+                    expect(await lm.around("invalid_dim", "feat1", "bar", 5)).toHaveLength(0);
+                    expect(await lm.around("globaldim", "feat1", "non-existing", 5)).toHaveLength(0);
+                    expect(await lm.around("globaldim", "feat1", "bar", -10)).toHaveLength(0); // invalid distance
+                });
+            });
+
+            describe('peek', () => {
+                test('with rank', async () => {
+                    expect(await lm.peek("baz", "globaldim", "feat1")).toStrictEqual({ id: 'baz', rank: 1, feat1: 3, feat2: 6, feat3: 9 });
+                });
+             
+                test('without rank', async () => {
+                    expect(await lm.peek("bar", "globaldim")).toStrictEqual({ id: 'bar', rank: 0, feat1: 2, feat2: 5, feat3: 8 });
+                });
+                
+                test('invalid', async () => {
+                    expect(await lm.peek("non-existing", "globaldim")).toBeNull();
+                    expect(await lm.peek("bar", "invalid_dim")).toBeNull();
+                    expect(await lm.peek("non-existing", "globaldim", "feat1")).toBeNull();
+                    expect(await lm.peek("bar", "invalid_dim", "feat1")).toBeNull();
+                    expect(await lm.peek("non-existing", "globaldim", "invalid-feat")).toBeNull();
+                    expect(await lm.peek("bar", "invalid_dim", "invalid-feat")).toBeNull();
+                });
+            });
+        });
     });
     
     test('without timeFrame', () => {

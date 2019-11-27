@@ -1,4 +1,5 @@
 import { Redis, KeyType, Pipeline } from 'ioredis';
+import { buildScript } from './Common';
 
 export type ID = string;
 
@@ -139,8 +140,9 @@ export class Leaderboard {
     
     /**
      * Retrieve the top entries
-     * This function is an alias for list(1, max)
      * @param max max number of entries to return
+     * 
+     * Note: This function is an alias for list(1, max)
      */
     top(max: number = 10): Promise<Entry[]> {
         return this.list(1, max);
@@ -183,23 +185,21 @@ export class Leaderboard {
         if(distance < 0)
             return [];
 
-        let result = await this.client.eval(
-            `local r=redis.call('z${this.options.lowToHigh ? '' : 'rev'}rank',KEYS[1],ARGV[1])` +
-            `if r==false then return{0,{}} end ` +
-            `local c=redis.call('zcard',KEYS[1])` +
-            `local l=math.max(0, r-ARGV[2])` +
-            (fillBorders ?
-                `local h=l+2*ARGV[2]` +
-                `if h>c then ` +
-                    `h=math.min(c, r+ARGV[2])` +
-                    `l=math.max(0,h-2*ARGV[2]-1)` +
-                `end `
-                :
-                `local h=math.min(c, r+ARGV[2])`
-            ) +
-            `return{l,redis.call('z${this.options.lowToHigh ? '' : 'rev'}range',KEYS[1],l,h,'WITHSCORES')}`,
-            // 289 bytes vs 20 bytes using EVALSHA should consider it
-            1, this.options.path, id, distance
+        let result = await this.client.eval(buildScript(`
+            local range = aroundRange(KEYS[1], ARGV[1], ARGV[2], ARGV[3], ARGV[4]);
+            if range[1] == -1 then return { 0, {} } end
+            return {
+                range[1],
+                redis.call(ARGV[1] and 'zrange' or 'zrevrange', KEYS[1], range[1], range[2], 'WITHSCORES')
+            }
+            `),
+            1,
+            this.options.path,
+            
+            this.isLowToHigh(),
+            id,
+            distance,
+            fillBorders
         );
 
         let entries: Entry[] = [];
