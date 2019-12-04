@@ -143,7 +143,7 @@ export class LeaderboardMatrix {
     async peek(id: ID, dimension: string, feature?: string): Promise<MatrixEntry | null> {
         if(feature) {
             // just rely on around()
-            let list = await this.around(dimension, feature, id, 1, false);
+            let list = await this.around(dimension, feature, id, 0, false);
             return list.length == 0 ? null : list[0];
         }
         // else, only query the features across the dimension
