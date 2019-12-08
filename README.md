@@ -216,6 +216,21 @@ mlb.add( // returns a promise
         //'US'
     ]
 );
+
+// also incr works
+mlb.incr(
+    "pepe",
+    {
+        kills: 3,
+        coins: 5,
+        time: 9
+    }, [
+        'global',
+        'monthly',
+        'weekly',
+        'daily',
+    ]
+);
 ```
 
 To list entries within the matrix, yo can use `top` and `around` based on a dimension like this:

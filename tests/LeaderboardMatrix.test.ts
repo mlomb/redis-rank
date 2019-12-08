@@ -110,6 +110,52 @@ describe('Leaderboard matrix', () => {
             });
         });
 
+        describe('incr', () => {
+            test('non existing', async () => {
+                await lm.incr("pepe", {
+                    feat1: 1
+                });
+                expect(await lm.peek("pepe", "globaldim")).toHaveProperty("feat1", 1);
+            });
+            test('existing', async () => {
+                await lm.add("pepe", {
+                    feat1: 10
+                });
+                await lm.incr("pepe", {
+                    feat1: 1
+                });
+                expect(await lm.peek("pepe", "globaldim")).toHaveProperty("feat1", 11);
+            });
+            test('filter dimensions', async () => {
+                await lm.add("pepe", {
+                    feat1: 1,
+                    feat2: 2,
+                    feat3: 3
+                }); // create in all dimensions
+                await lm.incr("pepe", {
+                    feat1: 4,
+                    feat2: 5,
+                    feat3: 6
+                }, ["monthdim"]); // incr only in monthly
+                expect(await lm.peek("pepe", "globaldim")).toMatchObject({
+                    feat1: 1,
+                    feat2: 2,
+                    feat3: 3
+                });
+                expect(await lm.peek("pepe", "monthdim")).toMatchObject({
+                    feat1: 5,
+                    feat2: 7,
+                    feat3: 9
+                });
+            });
+            test('invalid feature', async () => {
+                lm.incr("pepe", {
+                    feat_non_existing: 1
+                }, ["globaldim"]);
+                expect(lm.get("globaldim", "feat_non_existing")).toBe(null);
+            });
+        });
+
         describe('query', () => {
             beforeEach(async () => {
                 await lm.add("foo", { feat1: 1, feat2: 4, feat3: 7 });

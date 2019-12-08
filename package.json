@@ -1,6 +1,6 @@
 {
   "name": "redis-rank",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Back-end to generate and manage leaderboards using Redis. Written in TypeScript and Promise-based.",
   "keywords": [
     "redis",
@@ -26,7 +26,7 @@
   ],
   "scripts": {
     "build": "tsc && cpx src/common.lua dist",
-    "prepare": "npm run test && npm run build",
+    "publish": "npm run test && npm run build && npm publish",
     "test": "jest --coverage --verbose --runInBand",
     "dev": "nodemon --exec \"npm run test\" --watch src --watch tests -e ts,tsx"
   },

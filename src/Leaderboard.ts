@@ -66,6 +66,15 @@ export class Leaderboard {
     }
     
     /**
+     * @see incr
+     * 
+     * Uses IORedis.Pipeline to be able to batch multiple commands
+     */
+    incrMulti(id: ID, amount: number, pipeline: Pipeline): Pipeline {
+        return pipeline.zincrby(this.options.path, amount, id);
+    }
+    
+    /**
      * Removes an entry from the leaderboard
      */
     remove(id: ID): Promise<void> {
