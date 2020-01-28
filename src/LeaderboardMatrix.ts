@@ -111,6 +111,7 @@ export class LeaderboardMatrix {
      * ```
      * 
      * Note: if a feature/dimension is invalid, the combination is ignored
+     * Note: if the entry is not present in the leaderboard, it is created
      * 
      * @param features key-value object with features as key and values as scores
      * @param dimensions if provided, insertion will only occur on the provided dimensions.
@@ -150,7 +151,7 @@ export class LeaderboardMatrix {
      * Note: if a feature/dimension is invalid, the combination is ignored
      * Note: if the entry is not present in the leaderboard, it is created
      * 
-     * @param features key-value object with features as key and the value to increment as value
+     * @param features key-value object with features as key and values as scores
      * @param dimensions if provided, insertion will only occur on the provided dimensions.
      *                   if not provided, all dimensions are used
      */
@@ -166,6 +167,44 @@ export class LeaderboardMatrix {
                 let lb = this.get(dimension, feature);
                 if(lb) {
                     pipeline = lb.incrMulti(id, features[feature], pipeline);
+                }
+            }
+        }
+
+        return pipeline.exec();
+    }
+
+    /**
+     * Improves the scores of an entry present in multiple leaderboards in the matrix
+     * 
+     * e.g.
+     * 
+     * ```
+     * improve('id', {
+     *   feature1: 8,
+     *   feature2: 5
+     * }, ['dimension1', 'dimension2'])
+     * ```
+     * 
+     * Note: if a feature/dimension is invalid, the combination is ignored
+     * Note: if the entry is not present in the leaderboard, it is created
+     * 
+     * @param features key-value object with features as key and the value to increment as value
+     * @param dimensions if provided, improvement will only occur on the provided dimensions.
+     *                   if not provided, all dimensions are used
+     */
+    improve(id: ID, features: { [key: string]: number }, dimensions: string[] = []): Promise<void> {
+        if(dimensions.length == 0) { // use all dimensions
+            dimensions = this.options.dimensions.map((dim) => dim.name);
+        }
+
+        let pipeline: Pipeline = this.client.multi();
+
+        for(let dimension of dimensions) {
+            for(let feature in features) {
+                let lb = this.get(dimension, feature);
+                if(lb) {
+                    pipeline = lb.improveMulti(id, features[feature], pipeline);
                 }
             }
         }

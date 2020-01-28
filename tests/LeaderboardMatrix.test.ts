@@ -156,6 +156,29 @@ describe('Leaderboard matrix', () => {
             });
         });
 
+        describe('improve', () => {
+            test('non existing', async () => {
+                await lm.improve("pepe", {
+                    feat1: 1
+                });
+                expect(await lm.peek("pepe", "globaldim")).toHaveProperty("feat1", 1);
+            });
+            test('existing', async () => {
+                await lm.add("pepe", {
+                    feat1: 10
+                });
+                await lm.improve("pepe", {
+                    feat1: 1
+                });
+                expect(await lm.peek("pepe", "globaldim")).toHaveProperty("feat1", 10); // should not improve
+                
+                await lm.improve("pepe", {
+                    feat1: 100
+                });
+                expect(await lm.peek("pepe", "globaldim")).toHaveProperty("feat1", 100); // should improve
+            });
+        });
+
         describe('query', () => {
             beforeEach(async () => {
                 await lm.add("foo", { feat1: 1, feat2: 4, feat3: 7 });

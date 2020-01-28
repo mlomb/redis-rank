@@ -12,7 +12,7 @@ All the library is promise based.
 
 * **Plain Leaderboards**: insert and update entries. List them in multiple ways.
 * **Periodic Leaderboards**: automatically create leaderboards for different time spans (*supported: minute, hourly, daily, weekly, monthly, yearly, all-time*)
-* **Leaderboard Matrix**: combine multiple leaderboards with dimensions and features. Update them together with only one call. [More info](#Leaderboard%20Matrix).
+* **Leaderboard Matrix**: combine multiple leaderboards with dimensions and features. Update them together with only one call. [More info](#leaderboard-matrix).
 * Guaranteed *at most* one trip to Redis on each function call, taking advantage of Redis's `EVAL` and `MULTI`.
 
 Planned features:
@@ -80,6 +80,8 @@ lb.add("eve", 54);
 lb.add("bob", 27); // replace score
 lb.incr("alice", 10); // increment by 10, now 35
 lb.incr("dave", -5); // decrement by 5, now 37
+
+lb.improve("eve", 99); // only improve the score if better (higher in this case)
 
 // remove entries
 lb.remove("eve"); // eve is no more
@@ -224,6 +226,21 @@ mlb.incr(
         kills: 3,
         coins: 5,
         time: 9
+    }, [
+        'global',
+        'monthly',
+        'weekly',
+        'daily',
+    ]
+);
+
+// also improve works
+mlb.improve(
+    "pepe",
+    {
+        kills: 46,
+        coins: 25,
+        time: 454
     }, [
         'global',
         'monthly',

@@ -65,6 +65,12 @@ describe('Basic leaderboard', () => {
             expect(await lb.incr("bar", 30)).toBe(40); // existing
             expect(await lb.incr("foobar", 20)).toBe(20); // new
         });
+        test("improve", async () => {
+            expect(await lb.improve("bar", 30)).toBe(!lb.isLowToHigh()); // existing
+            expect(await lb.improve("bar", 1)).toBe(lb.isLowToHigh()); // existing
+            expect(await lb.improve("bar", 10)).toBe(false); // existing equal
+            expect(await lb.improve("foobar2", 20)).toBe(true); // new
+        });
         test("total", async () => {
             expect(await lb.total()).toBe(3);
             await lb.remove("bar");

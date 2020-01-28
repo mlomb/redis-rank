@@ -24,6 +24,8 @@ export class Leaderboard {
     private client: Redis;
     /** options */
     private options: LeaderboardOptions;
+    /** script source used in improve and improveMulti */
+    private improveScript: string;
 
     /**
      * Create a new leaderboard
@@ -37,6 +39,15 @@ export class Leaderboard {
             path: "lb",
             lowToHigh: false
         }, options);
+
+        this.improveScript = `
+            local ps = redis.call('zscore',KEYS[1],ARGV[1]);
+            if not ps or tonumber(ARGV[2]) ${this.options.lowToHigh ? '<' : '>'} tonumber(ps) then
+                redis.call('zadd',KEYS[1],ARGV[2],ARGV[1])
+                return 1
+            end
+            return 0
+        `;
     }
 
     /**
@@ -53,6 +64,28 @@ export class Leaderboard {
      */
     addMulti(id: ID, score: number, pipeline: Pipeline): Pipeline {
         return pipeline.zadd(this.options.path, score.toString(), id);
+    }
+    
+    /**
+     * Update the score of an entry if its better than the current stored
+     * If the entry does not exist, it is added
+     * 
+     * Note: it respects lowToHigh to know if a score is better
+     * 
+     * @returns if the score was updated
+     */
+    async improve(id: ID, score: number): Promise<Boolean> {
+        let result = await this.client.eval(this.improveScript, 1, this.options.path, id, score);
+        return result === 1;
+    }
+    
+    /**
+     * @see improve
+     * 
+     * Uses IORedis.Pipeline to be able to batch multiple commands
+     */
+    improveMulti(id: ID, score: number, pipeline: Pipeline): Pipeline {
+        return pipeline.eval(this.improveScript, 1, this.options.path, id, score);
     }
     
     /**
