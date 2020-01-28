@@ -241,7 +241,7 @@ export class Leaderboard {
             this.isLowToHigh().toString(),
             id,
             distance,
-            fillBorders
+            fillBorders.toString()
         );
 
         let entries: Entry[] = [];
