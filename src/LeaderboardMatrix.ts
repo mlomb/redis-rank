@@ -312,7 +312,7 @@ export class LeaderboardMatrix {
             lb.isLowToHigh().toString(),
             id,
             distance,
-            fillBorders,
+            fillBorders.toString(),
             this.options.features.length
         );
 
