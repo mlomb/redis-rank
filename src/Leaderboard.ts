@@ -238,7 +238,7 @@ export class Leaderboard {
             1,
             this.options.path,
             
-            this.isLowToHigh(),
+            this.isLowToHigh().toString(),
             id,
             distance,
             fillBorders

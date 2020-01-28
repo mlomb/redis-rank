@@ -264,7 +264,7 @@ export class LeaderboardMatrix {
             lb.getPath(),
             this.options.features.map(f => this.get(dimension, f.name)!.getPath()),
             
-            lb.isLowToHigh(),
+            lb.isLowToHigh().toString(),
             this.options.features.length,
             low-1,
             high-1
@@ -309,7 +309,7 @@ export class LeaderboardMatrix {
             lb.getPath(),
             this.options.features.map(f => this.get(dimension, f.name)!.getPath()),
             
-            lb.isLowToHigh(),
+            lb.isLowToHigh().toString(),
             id,
             distance,
             fillBorders,
