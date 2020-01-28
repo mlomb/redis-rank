@@ -110,8 +110,8 @@ export class Leaderboard {
     /**
      * Removes an entry from the leaderboard
      */
-    remove(id: ID): Promise<void> {
-        return this.client.zrem(this.options.path, id);
+    async remove(id: ID): Promise<void> {
+        await this.client.zrem(this.options.path, id);
     }
     
     /**
