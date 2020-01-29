@@ -117,7 +117,7 @@ export class LeaderboardMatrix {
      * @param dimensions if provided, insertion will only occur on the provided dimensions.
      *                   if not provided, all dimensions are used
      */
-    add(id: ID, features: { [key: string]: number }, dimensions: string[] = []): Promise<void> {
+    async add(id: ID, features: { [key: string]: number }, dimensions: string[] = []): Promise<void> {
         if(dimensions.length == 0) { // use all dimensions
             dimensions = this.options.dimensions.map((dim) => dim.name);
         }
@@ -133,7 +133,7 @@ export class LeaderboardMatrix {
             }
         }
 
-        return pipeline.exec();
+        await pipeline.exec();
     }
 
     /**
@@ -155,7 +155,7 @@ export class LeaderboardMatrix {
      * @param dimensions if provided, insertion will only occur on the provided dimensions.
      *                   if not provided, all dimensions are used
      */
-    incr(id: ID, features: { [key: string]: number }, dimensions: string[] = []): Promise<void> {
+    async incr(id: ID, features: { [key: string]: number }, dimensions: string[] = []): Promise<void> {
         if(dimensions.length == 0) { // use all dimensions
             dimensions = this.options.dimensions.map((dim) => dim.name);
         }
@@ -171,7 +171,7 @@ export class LeaderboardMatrix {
             }
         }
 
-        return pipeline.exec();
+        await pipeline.exec();
     }
 
     /**
@@ -193,7 +193,7 @@ export class LeaderboardMatrix {
      * @param dimensions if provided, improvement will only occur on the provided dimensions.
      *                   if not provided, all dimensions are used
      */
-    improve(id: ID, features: { [key: string]: number }, dimensions: string[] = []): Promise<void> {
+    async improve(id: ID, features: { [key: string]: number }, dimensions: string[] = []): Promise<void> {
         if(dimensions.length == 0) { // use all dimensions
             dimensions = this.options.dimensions.map((dim) => dim.name);
         }
@@ -209,7 +209,7 @@ export class LeaderboardMatrix {
             }
         }
 
-        return pipeline.exec();
+        await pipeline.exec();
     }
 
     /**
