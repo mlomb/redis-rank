@@ -74,7 +74,7 @@ All the methods listed here are promises.
 lb.add("alice", 25);
 lb.add("bob", 13);
 lb.add("dave", 42);
-lb.add("eve", 54);
+lb.incr("eve", 54); // incr will create an entry if it doesn't exists
 
 // update entries
 lb.add("bob", 27); // replace score
