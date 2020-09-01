@@ -48,6 +48,10 @@ describe('Basic leaderboard', () => {
         test("peek invalid", async () => {
             expect(await lb.peek("non-existing")).toBe(null);
         });
+        test("incr & peek decimal", async () => {
+            await lb.incr("foobar", 5.5);
+            expect(await lb.peek("foobar")).toMatchObject({ score: 5.5 });
+        });
         test("at invalid", async () => {
             expect(await lb.at(100)).toBe(null);
             expect(await lb.at(-1)).toBe(null);
@@ -65,11 +69,20 @@ describe('Basic leaderboard', () => {
             expect(await lb.incr("bar", 30)).toBe(40); // existing
             expect(await lb.incr("foobar", 20)).toBe(20); // new
         });
+        test("incr-decimal", async () => {
+            expect(await lb.incr("bar", 5.5)).toBe(15.5); // existing
+            expect(await lb.incr("foobar", 5.5)).toBe(5.5); // new
+        });
         test("improve", async () => {
             expect(await lb.improve("bar", 30)).toBe(!lb.isLowToHigh()); // existing
             expect(await lb.improve("bar", 1)).toBe(lb.isLowToHigh()); // existing
             expect(await lb.improve("bar", 10)).toBe(false); // existing equal
             expect(await lb.improve("foobar2", 20)).toBe(true); // new
+        });
+        test("improve-decimal", async () => {
+            expect(await lb.improve("bar", 5.5)).toBe(lb.isLowToHigh()); // existing
+            expect(await lb.improve("bar", 10.5)).toBe(!lb.isLowToHigh()); // existing
+            expect(await lb.improve("foobar2", 5.5)).toBe(true); // new
         });
         test("total", async () => {
             expect(await lb.total()).toBe(3);

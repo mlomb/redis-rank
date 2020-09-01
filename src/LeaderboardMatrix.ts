@@ -242,7 +242,7 @@ export class LeaderboardMatrix {
 
         let entry: MatrixEntry = { id, rank: 0 };
         this.options.features.map((f, f_i) => {
-            entry[f.name] = parseInt(result[f_i], 10)
+            entry[f.name] = parseFloat(result[f_i])
         });
         return entry;
     }
@@ -329,7 +329,7 @@ export class LeaderboardMatrix {
         return result[0].map((id: ID, index: number) => {
             let entry: MatrixEntry = { id, rank: low + index };
             this.options.features.map((f, f_i) => {
-                entry[f.name] = parseInt(result[1][f_i][index], 10)
+                entry[f.name] = parseFloat(result[1][f_i][index])
             });
             return entry;
         });
