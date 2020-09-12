@@ -1,6 +1,6 @@
 import Redis from 'ioredis';
 
-let rc = new Redis();
+let rc = new Redis({ db: 15 });
 
 beforeEach((done) => {
     rc.flushall(done);
