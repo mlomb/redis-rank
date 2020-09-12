@@ -1,21 +1,63 @@
 import { Redis, KeyType, Pipeline } from 'ioredis';
 import { buildScript } from './Common';
 
+/** Entry identifier */
 export type ID = string;
 
+/**
+ * Sort policy
+ * 
+ * * `high-to-low`: sort scores in descending order
+ * * `low-to-high`: sort scores in ascending order
+ */
+export type SortPolicy = 'high-to-low' | 'low-to-high';
+
+/**
+ * Update policy
+ * 
+ * When an update occurs...
+ * * `best`: the best score is kept (determined by the sort policy)
+ * * `aggregate`: old and new scores will be added
+ * * `replace`: the new score will replace the previous one
+ */
+export type UpdatePolicy = 'best' | 'aggregate' | 'replace';
+
 export type LeaderboardOptions = {
-    /** sorted set key */
-    path: KeyType,
-    /** lower scores are better */
-    lowToHigh: boolean
+    /**
+     * Redis key for the sorted set.
+     * You can use any sorted set, not only the ones created by redis-rank.
+     */
+    redisKey: KeyType,
+    /**
+     * Sort policy for this leaderboard
+     * @see SortPolicy
+     */
+    sortPolicy: SortPolicy,
+    /**
+     * Update policy for this leaderboard
+     * 
+     * @see UpdatePolicy
+     * @default 'replace'
+     */
+    updatePolicy: UpdatePolicy,
+    /**
+     * Keep only the top N entries, determined by the sort policy.
+     * This lets you limit the number of entries stored, thus saving memory.
+     * 
+     * @default 0 (no limit)
+     */
+    limitTopN: number
 }
 
+/**
+ * Entry details at the time of the query
+ */
 export type Entry = {
-    /** identifier */
+    /** Identifier */
     id: ID,
-    /** score */
+    /** Score value */
     score: number,
-    /** ranking */
+    /** Position in the leaderboard, determined by the sort policy. 1-based */
     rank: number
 }
 
