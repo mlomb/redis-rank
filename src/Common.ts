@@ -66,11 +66,18 @@ export function buildScript(script: string) {
     return COMMON + ";" + script;
 }
 
-const zbest = (operator: '>' | '<') => `
+type SortDirection = 'desc' | 'asc';
+
+/**
+ * `KEYS[1]`: leaderboard key  
+ * `ARGV[1]`: entry score
+ * `ARGV[2]`: entry id
+ */
+const zbest = (dir: SortDirection) => `
     -- retrieve current score
     local ps = redis.call('zscore', KEYS[1], ARGV[2]);
     -- if it doesn't exist or the new score is better
-    if not ps or tonumber(ARGV[1]) ${operator} tonumber(ps) then
+    if not ps or tonumber(ARGV[1]) ${dir === 'desc' ? '>' : '<'} tonumber(ps) then
         -- replace entry
         redis.call('zadd', KEYS[1], ARGV[1], ARGV[2])
         return 1
@@ -79,22 +86,31 @@ const zbest = (operator: '>' | '<') => `
 `;
 
 /**
+ * `KEYS[1]`: leaderboard key  
+ * `ARGV[1]`: entry id
+ */
+const zfind = (dir: SortDirection) => `
+    return {
+        redis.call('zscore', KEYS[1], ARGV[1]),
+        redis.call('z${dir === 'desc' ? 'rev' : ''}rank', KEYS[1], ARGV[1])
+    }
+`;
+
+/**
  * Defines multiple commands useful to manage leaderboards:
  * * `zbest`: replace the score of the specified member if it doesn't exist or
  *   the provided score is **higher** than the old one
  * * `zrevbest`: replace the score of the specified member if it doesn't exist
  *   or the provided score is **lower** than the old one
+ * * `zfind`: find the score and rank (asc) of a given member
+ * * `zrevfind`: find the score and rank (desc) of a given member
  * 
  * @see https://github.com/luin/ioredis#lua-scripting
  * @param client the client to define the commands
  */
 export function extendRedisClient(client: Redis) {
-    client.defineCommand("zbest", {
-        numberOfKeys: 1,
-        lua: zbest('>') // higher is better
-    });
-    client.defineCommand("zrevbest", {
-        numberOfKeys: 1,
-        lua: zbest('<') // lower is better
-    });
+    client.defineCommand("zbest",    { numberOfKeys: 1, lua: zbest('asc') });
+    client.defineCommand("zrevbest", { numberOfKeys: 1, lua: zbest('desc')  });
+    client.defineCommand("zfind",    { numberOfKeys: 1, lua: zfind('asc') });
+    client.defineCommand("zrevfind", { numberOfKeys: 1, lua: zfind('desc')  });
 }

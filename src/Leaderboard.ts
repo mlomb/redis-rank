@@ -73,6 +73,9 @@ export class Leaderboard {
     /**
      * Create a new leaderboard
      * 
+     * Note: the Redis key will not be created until an entry is inserted
+     * (aka lazy)
+     * 
      * @param client ioredis client
      * @param options leaderboard options
      */
@@ -94,6 +97,8 @@ export class Leaderboard {
 
     /**
      * Remove all the entries from the leaderboard
+     * 
+     * Note: it will delete the underlying Redis key
      * 
      * Complexity: `O(N)` where N is the number of entries in the leaderboard
      */
@@ -124,9 +129,31 @@ export class Leaderboard {
      */
     async rank(id: ID): Promise<Rank | null> {
         let rank = await (this.options.sortPolicy === 'high-to-low' ?
-            this.client.zrank(this.options.redisKey, id) :
-            this.client.zrevrank(this.options.redisKey, id));
+            this.client.zrevrank(this.options.redisKey, id) :
+            this.client.zrank(this.options.redisKey, id));
         return rank === null ? null : (rank+1);
+    }
+
+    /**
+     * Retrieves an entry. If it doesn't exist, it returns null.
+     * 
+     * Complexity: `O(log(N))` where N is the number of entries in the
+     *             leaderboard
+     * 
+     * @param id entry id
+     */
+    async find(id: ID): Promise<Entry | null> {
+        let result = await (this.options.sortPolicy === 'high-to-low' ?
+            // @ts-ignore
+            this.client.zrevfind(this.options.redisKey, id) :
+            // @ts-ignore
+            this.client.zfind(this.options.redisKey, id));
+
+        return (result[0] === false || result[1] === false || result[0] === null || result[1] === null) ? null : {
+            id: id,
+            score: parseFloat(result[0]),
+            rank: result[1]+1
+        };
     }
 
     /**
@@ -169,13 +196,11 @@ export class Leaderboard {
                 for (let entry of entries) {
                     if(this.options.sortPolicy === 'high-to-low')
                         // @ts-ignore
-                        pipeline.zbest(key, entry.value, entry.id);
+                        pipeline.zrevbest(key, entry.value, entry.id);
                     else
                         // @ts-ignore
-                        pipeline.zrevbest(key, entry.value, entry.id);
+                        pipeline.zbest(key, entry.value, entry.id);
                 }
-                break;
-            default:
                 break;
         }
     }
