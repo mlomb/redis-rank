@@ -1,3 +1,5 @@
+import { Redis } from "ioredis";
+
 const COMMON = `
 local function slice(array, start, finish)
     local t = {}
@@ -62,4 +64,37 @@ end
 
 export function buildScript(script: string) {
     return COMMON + ";" + script;
+}
+
+const zbest = (operator: '>' | '<') => `
+    -- retrieve current score
+    local ps = redis.call('zscore', KEYS[1], ARGV[2]);
+    -- if it doesn't exist or the new score is better
+    if not ps or tonumber(ARGV[1]) ${operator} tonumber(ps) then
+        -- replace entry
+        redis.call('zadd', KEYS[1], ARGV[1], ARGV[2])
+        return 1
+    end
+    return 0
+`;
+
+/**
+ * Defines multiple commands useful to manage leaderboards:
+ * * `zbest`: replace the score of the specified member if it doesn't exist or
+ *   the provided score is **higher** than the old one
+ * * `zrevbest`: replace the score of the specified member if it doesn't exist
+ *   or the provided score is **lower** than the old one
+ * 
+ * @see https://github.com/luin/ioredis#lua-scripting
+ * @param client the client to define the commands
+ */
+export function extendRedisClient(client: Redis) {
+    client.defineCommand("zbest", {
+        numberOfKeys: 1,
+        lua: zbest('>') // higher is better
+    });
+    client.defineCommand("zrevbest", {
+        numberOfKeys: 1,
+        lua: zbest('<') // lower is better
+    });
 }

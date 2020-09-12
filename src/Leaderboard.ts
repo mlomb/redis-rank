@@ -1,4 +1,5 @@
 import { Redis, KeyType, Pipeline } from 'ioredis';
+import { extendRedisClient } from './Common';
 
 /** Entry identifier */
 export type ID = string;
@@ -78,6 +79,8 @@ export class Leaderboard {
     constructor(client: Redis, options: LeaderboardOptions) {
         this.client = client;
         this.options = options;
+
+        extendRedisClient(this.client);
     }
 
     /**
@@ -111,17 +114,19 @@ export class Leaderboard {
     }
 
     /**
-     * Retrieves the rank of an entry. If it doesn't exist, it returns null
+     * Retrieves the rank of an entry. If it doesn't exist, it returns null.
+     * 1-based
      * 
      * Complexity: `O(log(N))` where N is the number of entries in the
      *             leaderboard
      * 
      * @param id entry id
      */
-    rank(id: ID): Promise<Rank | null> {
-        return this.options.sortPolicy === 'high-to-low' ?
+    async rank(id: ID): Promise<Rank | null> {
+        let rank = await (this.options.sortPolicy === 'high-to-low' ?
             this.client.zrank(this.options.redisKey, id) :
-            this.client.zrevrank(this.options.redisKey, id);
+            this.client.zrevrank(this.options.redisKey, id));
+        return rank === null ? null : (rank+1);
     }
 
     /**
@@ -138,7 +143,9 @@ export class Leaderboard {
 
         const pipeline = this.client.pipeline();
         this.updateMulti(entries, pipeline);
-        await pipeline.exec();
+        let r = await pipeline.exec();
+        //console.log(r);
+        // TODO: handle errors
     }
 
     /**
@@ -147,19 +154,28 @@ export class Leaderboard {
      * @see update
      */
     updateMulti(entries: EntryUpdateQuery[], pipeline: Pipeline) {
+        const key = this.options.redisKey;
+        
         switch (this.options.updatePolicy) {
             case 'replace':
                 for (let entry of entries)
-                    pipeline.zadd(this.options.redisKey, entry.value as any, entry.id);
+                    pipeline.zadd(key, entry.value as any, entry.id);
                 break;
             case 'aggregate':
                 for (let entry of entries)
-                    pipeline.zincrby(this.options.redisKey, entry.value, entry.id);
+                    pipeline.zincrby(key, entry.value, entry.id);
                 break;
             case 'best':
                 for (let entry of entries) {
-                    pipeline.zadd(this.options.redisKey, entry.value as any, entry.id);
+                    if(this.options.sortPolicy === 'high-to-low')
+                        // @ts-ignore
+                        pipeline.zbest(key, entry.value, entry.id);
+                    else
+                        // @ts-ignore
+                        pipeline.zrevbest(key, entry.value, entry.id);
                 }
+                break;
+            default:
                 break;
         }
     }
