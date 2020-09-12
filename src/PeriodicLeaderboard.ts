@@ -1,6 +1,5 @@
-import { Leaderboard, LeaderboardOptions } from './Leaderboard';
 import { Redis } from 'ioredis';
-import moment from 'moment';
+import { Leaderboard, LeaderboardOptions } from './Leaderboard';
 
 /**
  * Time interval of one leaderboard cycle
@@ -65,7 +64,8 @@ export class PeriodicLeaderboard {
      * Get a the key of the leaderboard in a specific date
      */
     getKey(date: Date): string {
-        return moment(date).format(this.format);
+        return date.toString();
+        //return moment(date).format(this.format);
     }
 
     /**

@@ -1,6 +1,6 @@
 {
   "name": "redis-rank",
-  "version": "1.5.1",
+  "version": "2.0.0",
   "description": "Back-end to generate and manage leaderboards using Redis. Written in TypeScript and Promise-based.",
   "keywords": [
     "redis",
@@ -17,7 +17,7 @@
   "repository": "https://github.com/mlomb/redis-rank",
   "homepage": "https://github.com/mlomb/redis-rank",
   "bugs": "https://github.com/mlomb/redis-rank/issues",
-  "author": "Martin Lombardo <to@mlomb.me>",
+  "author": "Martin Emiliano Lombardo <to@mlomb.me>",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -31,18 +31,18 @@
     "dev": "nodemon --exec \"npm run test\" --watch src --watch tests -e ts,tsx"
   },
   "devDependencies": {
-    "@types/ioredis": "^4.0.19",
-    "@types/jest": "^24.0.23",
-    "@types/node": "^12.12.8",
-    "codecov": "^3.6.1",
+    "@types/ioredis": "^4.17.4",
+    "@types/jest": "^26.0.13",
+    "@types/node": "^14.10.1",
+    "codecov": "^3.7.2",
     "cpx": "^1.5.0",
-    "jest": "^24.9.0",
-    "nodemon": "^1.19.4",
-    "ts-jest": "^24.1.0",
-    "typescript": "^3.7.2"
-  },
-  "dependencies": {
     "ioredis": "^4.14.1",
-    "moment": "^2.24.0"
+    "jest": "^26.4.2",
+    "nodemon": "^2.0.4",
+    "ts-jest": "^26.3.0",
+    "typescript": "^4.0.2"
+  },
+  "peerDependencies": {
+    "ioredis": ">=4.x"
   }
 }
