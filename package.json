@@ -25,7 +25,7 @@
     "/dist"
   ],
   "scripts": {
-    "build": "tsc && cpx src/common.lua dist",
+    "build": "tsc",
     "publish": "npm run test && npm run build && npm publish",
     "test": "jest --coverage --verbose --runInBand",
     "dev": "nodemon --exec \"npm run test\" --watch src --watch tests -e ts,tsx"
