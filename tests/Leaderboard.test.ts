@@ -5,7 +5,7 @@ import {
     Score,
     Rank,
     EntryUpdateQuery
-} from '../src/index';
+} from '../lib/index';
 import rc from './redis';
 
 const TEST_KEY = "lb";
@@ -137,28 +137,36 @@ describe('Leaderboard', () => {
 
             test('updateOne new', async () => {
                 let r = await lb.updateOne("foo", 10);
-                if(shouldReturnFinalScore)
-                    expect(r).toBe(10);
                 expect(await lb.count()).toBe(1);
                 expect(await lb.score("foo")).toBe(10);
             });
             
             test('update single new', async () => {
                 let r = await lb.update({ id: "foo", value: 10 });
-                if(shouldReturnFinalScore)
-                    expect(r).toStrictEqual([10]);
                 expect(await lb.count()).toBe(1);
                 expect(await lb.score("foo")).toBe(10);
             });
 
             test('update list new', async () => {
                 let r = await lb.update(FOO_BAR_BAZ);
-                if(shouldReturnFinalScore)
-                    expect(r).toStrictEqual([10, 100, 1000]);
                 expect(await lb.count()).toBe(FOO_BAR_BAZ.length);
                 for(let e of FOO_BAR_BAZ)
                     expect(await lb.score(e.id)).toBe(e.value);
             });
+            
+            if(shouldReturnFinalScore) {
+                test('updateOne return score', async () => {
+                    expect(await lb.updateOne("foo", 10)).toBe(10);
+                });
+                
+                test('update single return score', async () => {
+                    expect(await lb.update({ id: "foo", value: 10 })).toStrictEqual([10]);
+                });
+
+                test('update list return score', async () => {
+                    expect(await lb.update(FOO_BAR_BAZ)).toStrictEqual([10, 100, 1000]);
+                });
+            }
 
             describe.each([
                 [ 1,  1],

@@ -28,7 +28,7 @@
     "build": "tsc",
     "publish": "npm run test && npm run build && npm publish",
     "test": "jest --coverage --verbose --runInBand",
-    "dev": "nodemon --exec \"npm run test\" --watch src --watch tests -e ts,tsx"
+    "dev": "nodemon --exec \"npm run test\" --watch lib --watch tests -e ts,tsx"
   },
   "devDependencies": {
     "@types/ioredis": "^4.17.4",
