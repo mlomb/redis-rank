@@ -128,10 +128,19 @@ describe('Leaderboard', () => {
                 });
             });
 
-            test('add new', async () => {
-                await lb.update({ id: "foo", value: 10 });
+            test('new replace', async () => {
+                await lb.replace("foo", 10);
                 expect(await lb.count()).toBe(1);
             });
+            test('new incr', async () => {
+                await lb.incr("foo", 10);
+                expect(await lb.count()).toBe(1);
+            });
+            test('new best', async () => {
+                await lb.best("foo", 10);
+                expect(await lb.count()).toBe(1);
+            });
+
             describe.each([
                 [ 1,  1],
                 [ 1, -1],

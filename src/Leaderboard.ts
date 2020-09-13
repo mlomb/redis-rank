@@ -180,6 +180,9 @@ export class Leaderboard {
     /**
      * Set/replace the score of an entry. Ignores the update policy
      * 
+     * Complexity: `O(log(N))` where N is the number of entries in the
+     *             leaderboard
+     * 
      * @param id entry id
      * @param score new score for entry
      */
@@ -195,6 +198,9 @@ export class Leaderboard {
      * Increment the score of an entry. Ignores the update policy.  
      * If the entry doesn't exist, it creates it with `value` as score
      * 
+     * Complexity: `O(log(N))` where N is the number of entries in the
+     *             leaderboard
+     * 
      * @param id entry id
      * @param value amount to increment
      * @returns the updated score
@@ -204,11 +210,18 @@ export class Leaderboard {
         return parseFloat(new_score);
     }
 
+    incrMulti(update: EntryUpdateQuery, pipeline: Pipeline) {
+        pipeline.zincrby(this.options.redisKey, update.value as any, update.id);
+    }
+
     /**
      * Updates the score of an entry only if the provided value is _better_
      * than the stored one. If the entry doesn't exist, it is created
      * 
      * Note: a score is considered better depending on the sort policy
+     * 
+     * Complexity: `O(log(N))` where N is the number of entries in the
+     *             leaderboard
      * 
      * @param id entry id
      * @param score new score for entry
@@ -221,6 +234,22 @@ export class Leaderboard {
             // @ts-ignore
             this.client.zbest(this.options.redisKey, score, id));
         return result === 1 || result === '1'; // just in case we check both
+    }
+
+    bestMulti(update: EntryUpdateQuery, pipeline: Pipeline) {
+        if(this.options.sortPolicy === 'high-to-low')
+            // @ts-ignore
+            pipeline.zrevbest(this.options.redisKey, update.value, update.id);
+        else
+            // @ts-ignore
+            pipeline.zbest(this.options.redisKey, update.value, update.id);
+    }
+    
+    async update(update: EntryUpdateQuery | EntryUpdateQuery[]) {
+        switch (this.options.updatePolicy) {
+            case 'replace':
+                this.replace(update.id, update.value);
+        }
     }
     
     /**
