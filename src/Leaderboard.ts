@@ -1,4 +1,4 @@
-import { Redis, KeyType, Pipeline } from 'ioredis';
+import { Redis, KeyType, Commands, Pipeline } from 'ioredis';
 import { extendRedisClient } from './Common';
 
 /** Entry identifier */
@@ -68,8 +68,8 @@ export type EntryUpdateQuery = {
 
 export class Leaderboard {
 
-    readonly client: Redis;
-    readonly options: LeaderboardOptions;
+    private readonly client: Redis;
+    private readonly options: LeaderboardOptions;
 
     /**
      * Create a new leaderboard
@@ -158,128 +158,96 @@ export class Leaderboard {
     }
 
     /**
-     * Update entries. If one of the entries does not exists, it will be created
+     * Update one entry. If the entry does not exists, it will be created.
+     * The update behaviour is determined by the sort and update policies.
      * 
-     * Complexity: `O(log(N))` for each entry added, where N is the number of
-     *             entries in the leaderboard
+     * Complexity: `O(log(N))` where N is the number of entries in the
+     * leaderboard
      * 
-     * @param entries list of entries to update
+     * @param id entry id
+     * @param value amount or score
+     * @returns if the update policy is `aggregate` or `best` then the final
+     * score otherwise void
      */
-    async update(entries: EntryUpdateQuery | EntryUpdateQuery[]): Promise<void> {
+    async updateOne(id: ID, value: Score | number): Promise<Score | void> {
+        return (await this.update([{ id, value }]))[0];
+    }
+
+    /**
+     * Update one or more entries. If one of the entries does not exists,
+     * it will be created. The update behaviour is determined by the sort and
+     * update policies.
+     * 
+     * Complexity: `O(log(N))` for each entry updated, where N is the number of
+     * entries in the leaderboard
+     * 
+     * @param entries entry or list of entries to update
+     * @returns if the update policy is `aggregate` or `best` then the final
+     * score for each entry otherwise void
+     */
+    async update(entries: EntryUpdateQuery | EntryUpdateQuery[]): Promise<Score[] | void[]> {
         if (!Array.isArray(entries))
             entries = [entries];
-
-        const pipeline = this.client.pipeline();
-        this.updateMulti(entries, pipeline);
-        let r = await pipeline.exec();
-        //console.log(r);
-        // TODO: handle errors
-    }
-
-
-    /**
-     * Set/replace the score of an entry. Ignores the update policy
-     * 
-     * Complexity: `O(log(N))` where N is the number of entries in the
-     *             leaderboard
-     * 
-     * @param id entry id
-     * @param score new score for entry
-     */
-    async replace(id: ID, score: Score): Promise<void> {
-        await this.client.zadd(this.options.redisKey, score, id);
-    }
-
-    replaceMulti(update: EntryUpdateQuery, pipeline: Pipeline) {
-        pipeline.zadd(this.options.redisKey, update.value as any, update.id);
-    }
-
-    /**
-     * Increment the score of an entry. Ignores the update policy.  
-     * If the entry doesn't exist, it creates it with `value` as score
-     * 
-     * Complexity: `O(log(N))` where N is the number of entries in the
-     *             leaderboard
-     * 
-     * @param id entry id
-     * @param value amount to increment
-     * @returns the updated score
-     */
-    async incr(id: ID, value: number): Promise<Score> {
-        let new_score = await this.client.zincrby(this.options.redisKey, value, id);
-        return parseFloat(new_score);
-    }
-
-    incrMulti(update: EntryUpdateQuery, pipeline: Pipeline) {
-        pipeline.zincrby(this.options.redisKey, update.value as any, update.id);
-    }
-
-    /**
-     * Updates the score of an entry only if the provided value is _better_
-     * than the stored one. If the entry doesn't exist, it is created
-     * 
-     * Note: a score is considered better depending on the sort policy
-     * 
-     * Complexity: `O(log(N))` where N is the number of entries in the
-     *             leaderboard
-     * 
-     * @param id entry id
-     * @param score new score for entry
-     * @returns whether the score has been updated
-     */
-    async best(id: ID, score: Score): Promise<boolean> {
-        let result = await (this.options.sortPolicy === 'high-to-low' ?
-            // @ts-ignore
-            this.client.zrevbest(this.options.redisKey, score, id) :
-            // @ts-ignore
-            this.client.zbest(this.options.redisKey, score, id));
-        return result === 1 || result === '1'; // just in case we check both
-    }
-
-    bestMulti(update: EntryUpdateQuery, pipeline: Pipeline) {
-        if(this.options.sortPolicy === 'high-to-low')
-            // @ts-ignore
-            pipeline.zrevbest(this.options.redisKey, update.value, update.id);
-        else
-            // @ts-ignore
-            pipeline.zbest(this.options.redisKey, update.value, update.id);
-    }
-    
-    async update(update: EntryUpdateQuery | EntryUpdateQuery[]) {
-        switch (this.options.updatePolicy) {
-            case 'replace':
-                this.replace(update.id, update.value);
-        }
-    }
-    
-    /**
-     * Uses IORedis.Pipeline to batch multiple update commands
-     * 
-     * @see update
-     */
-    updateMulti(entries: EntryUpdateQuery[], pipeline: Pipeline) {
-        const key = this.options.redisKey;
         
-        switch (this.options.updatePolicy) {
-            case 'replace':
-                for (let entry of entries)
-                    pipeline.zadd(key, entry.value as any, entry.id);
-                break;
-            case 'aggregate':
-                for (let entry of entries)
-                    pipeline.zincrby(key, entry.value, entry.id);
-                break;
-            case 'best':
-                for (let entry of entries) {
-                    if(this.options.sortPolicy === 'high-to-low')
-                        // @ts-ignore
-                        pipeline.zrevbest(key, entry.value, entry.id);
-                    else
-                        // @ts-ignore
-                        pipeline.zbest(key, entry.value, entry.id);
-                }
-                break;
-        }
+        let pipeline = this.client.pipeline();
+        this.updatePipe(entries, pipeline);
+        this.postInsert(pipeline);
+        return (await Leaderboard.execPipeline(pipeline)).map(parseFloat);
     }
 
+    /**
+     * Uses IORedis.Pipeline to batch multiple redis commands
+     * 
+     * @see update  
+     * @param entries list of entries to update
+     * @param pipeline ioredis pipeline
+     */
+    updatePipe(entries: EntryUpdateQuery[], pipeline: Pipeline) {
+        let fn: any = null;
+
+        switch (this.options.updatePolicy) {
+            case 'replace': fn = pipeline.zadd.bind(pipeline); break;
+            case 'aggregate': fn = pipeline.zincrby.bind(pipeline); break;
+            case 'best':
+                fn = this.options.sortPolicy === 'high-to-low' ?
+                    // @ts-ignore
+                    pipeline.zrevbest.bind(pipeline) :
+                    // @ts-ignore
+                    pipeline.zbest.bind(pipeline);
+                break;
+        }
+
+        for (let entry of entries)
+            fn(this.options.redisKey, entry.value, entry.id);
+    }
+
+    private postInsert(pipeline: Pipeline) {
+        // TODO: check top N
+    }
+    
+    static async execPipeline(pipeline: Pipeline): Promise<any[]> {
+        let outputs = await pipeline.exec();
+        let results = [];
+        for(let [err, result] of outputs) {
+            if(err) throw err;
+            results.push(result);
+        }
+        return results;
+    }
+    
+    public get redisClient(): Redis {
+        return this.client;
+    }
+    
+    public get redisKey(): KeyType {
+        return this.options.redisKey;
+    }
+
+    public get sortPolicy(): SortPolicy {
+        return this.options.sortPolicy;
+    }
+    
+    public get updatePolicy(): UpdatePolicy {
+        return this.options.updatePolicy;
+    }
 }

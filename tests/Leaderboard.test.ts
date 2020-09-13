@@ -113,13 +113,13 @@ describe('Leaderboard', () => {
     
     describe('update', () => {
         describe.each([
-            ['high-to-low', 'best',      (a: Score, b: Score): Score => Math.max(a, b)],
-            ['high-to-low', 'aggregate', (a: Score, b: Score): Score => a + b],
-            ['high-to-low', 'replace',   (a: Score, b: Score): Score => b],
-            ['low-to-high', 'best',      (a: Score, b: Score): Score => Math.min(a, b)],
-            ['low-to-high', 'aggregate', (a: Score, b: Score): Score => a + b],
-            ['low-to-high', 'replace',   (a: Score, b: Score): Score => b]
-        ])('%s / %s', (sortPolicy, updatePolicy, expectedBehaviour) => {
+            ['high-to-low', 'best',      true,  (a: Score, b: Score): Score => Math.max(a, b)],
+            ['high-to-low', 'aggregate', true,  (a: Score, b: Score): Score => a + b],
+            ['high-to-low', 'replace',   false, (a: Score, b: Score): Score => b],
+            ['low-to-high', 'best',      true,  (a: Score, b: Score): Score => Math.min(a, b)],
+            ['low-to-high', 'aggregate', true,  (a: Score, b: Score): Score => a + b],
+            ['low-to-high', 'replace',   false, (a: Score, b: Score): Score => b]
+        ])('%s / %s', (sortPolicy, updatePolicy, shouldReturnFinalScore, expectedBehaviour) => {
             beforeEach(() => {
                 lb = new Leaderboard(rc, {
                     redisKey: TEST_KEY,
@@ -128,17 +128,36 @@ describe('Leaderboard', () => {
                 });
             });
 
-            test('new replace', async () => {
-                await lb.replace("foo", 10);
-                expect(await lb.count()).toBe(1);
+            test('getters', () => {
+                expect(lb.redisClient).toBe(rc);
+                expect(lb.redisKey).toBe(TEST_KEY);
+                expect(lb.sortPolicy).toBe(sortPolicy);
+                expect(lb.updatePolicy).toBe(updatePolicy);
             });
-            test('new incr', async () => {
-                await lb.incr("foo", 10);
+
+            test('updateOne new', async () => {
+                let r = await lb.updateOne("foo", 10);
+                if(shouldReturnFinalScore)
+                    expect(r).toBe(10);
                 expect(await lb.count()).toBe(1);
+                expect(await lb.score("foo")).toBe(10);
             });
-            test('new best', async () => {
-                await lb.best("foo", 10);
+            
+            test('update single new', async () => {
+                let r = await lb.update({ id: "foo", value: 10 });
+                if(shouldReturnFinalScore)
+                    expect(r).toStrictEqual([10]);
                 expect(await lb.count()).toBe(1);
+                expect(await lb.score("foo")).toBe(10);
+            });
+
+            test('update list new', async () => {
+                let r = await lb.update(FOO_BAR_BAZ);
+                if(shouldReturnFinalScore)
+                    expect(r).toStrictEqual([10, 100, 1000]);
+                expect(await lb.count()).toBe(FOO_BAR_BAZ.length);
+                for(let e of FOO_BAR_BAZ)
+                    expect(await lb.score(e.id)).toBe(e.value);
             });
 
             describe.each([
@@ -158,31 +177,26 @@ describe('Leaderboard', () => {
                     const expectedScore = expectedBehaviour(a, b);
 
                     beforeEach(async () => {
-                        // set initial value
-                        await lb.replace("foo", a);
+                        // set initial values
+                        for(let e of FOO_BAR_BAZ)
+                            await lb.updateOne(e.id, a);
                     });
                     
-                    // should ignore whatever policy is set, always replace
-                    test('replace', async () => {
-                        await lb.replace("foo", b);
-                        expect(await lb.score("foo")).toBe(b);
+                    test('updateOne existing', async () => {
+                        await lb.updateOne("foo", b);
+                        expect(await lb.score("foo")).toBe(expectedScore);
                     });
-                    test('incr', async () => {
-                        await lb.incr("foo", b);
-                        expect(await lb.score("foo")).toBe(a + b);
-                    });
-                    test('best', async () => {
-                        await lb.best("foo", b);
-                        expect(await lb.score("foo")).toBe(
-                            sortPolicy === 'high-to-low' ?
-                            Math.max(a, b) : Math.min(a, b)
-                        );
-                    });
-
-
-                    test('update', async () => {
+                    test('update single existing', async () => {
                         await lb.update({ id: "foo", value: b });
                         expect(await lb.score("foo")).toBe(expectedScore);
+                    });
+                    test('update list existing', async () => {
+                        let list = [];
+                        for(let e of FOO_BAR_BAZ)
+                            list.push({ id: e.id, value: b });
+                        await lb.update(list);
+                        for(let e of FOO_BAR_BAZ)
+                            expect(await lb.score(e.id)).toBe(expectedScore);
                     });
                 });
             });

@@ -72,6 +72,8 @@ type SortDirection = 'desc' | 'asc';
  * `KEYS[1]`: leaderboard key  
  * `ARGV[1]`: entry score
  * `ARGV[2]`: entry id
+ * 
+ * Returns the final score
  */
 const zbest = (dir: SortDirection) => `
     -- retrieve current score
@@ -80,14 +82,16 @@ const zbest = (dir: SortDirection) => `
     if not ps or tonumber(ARGV[1]) ${dir === 'desc' ? '>' : '<'} tonumber(ps) then
         -- replace entry
         redis.call('zadd', KEYS[1], ARGV[1], ARGV[2])
-        return 1
+        return tonumber(ARGV[1])
     end
-    return 0
+    return tonumber(ps)
 `;
 
 /**
  * `KEYS[1]`: leaderboard key  
  * `ARGV[1]`: entry id
+ * 
+ * Returns [score, rank]
  */
 const zfind = (dir: SortDirection) => `
     return {
