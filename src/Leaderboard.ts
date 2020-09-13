@@ -20,11 +20,11 @@ export type SortPolicy = 'high-to-low' | 'low-to-high';
  * Update policy
  * 
  * When an update occurs...
- * * `best`: the best score is kept (determined by the sort policy)
- * * `aggregate`: old and new scores will be added
  * * `replace`: the new score will replace the previous one
+ * * `aggregate`: old and new scores will be added
+ * * `best`: the best score is kept (determined by the sort policy)
  */
-export type UpdatePolicy = 'best' | 'aggregate' | 'replace';
+export type UpdatePolicy = 'replace' | 'aggregate' | 'best';
 
 export type LeaderboardOptions = {
     /**
@@ -46,7 +46,8 @@ export type LeaderboardOptions = {
      * Keep only the top N entries, determined by the sort policy.
      * This lets you limit the number of entries stored, thus saving memory
      * 
-     * If its not specified, or the value is `0`, it means there is no limit
+     * If it is not specified, or the value is `0`, it means that there is
+     * no limit
      */
     limitTopN?: number
 }
@@ -62,7 +63,7 @@ export type Entry = {
 
 export type EntryUpdateQuery = {
     id: ID,
-    value: Score
+    value: number | Score
 }
 
 export class Leaderboard {
@@ -175,6 +176,53 @@ export class Leaderboard {
         // TODO: handle errors
     }
 
+
+    /**
+     * Set/replace the score of an entry. Ignores the update policy
+     * 
+     * @param id entry id
+     * @param score new score for entry
+     */
+    async replace(id: ID, score: Score): Promise<void> {
+        await this.client.zadd(this.options.redisKey, score, id);
+    }
+
+    replaceMulti(update: EntryUpdateQuery, pipeline: Pipeline) {
+        pipeline.zadd(this.options.redisKey, update.value as any, update.id);
+    }
+
+    /**
+     * Increment the score of an entry. Ignores the update policy.  
+     * If the entry doesn't exist, it creates it with `value` as score
+     * 
+     * @param id entry id
+     * @param value amount to increment
+     * @returns the updated score
+     */
+    async incr(id: ID, value: number): Promise<Score> {
+        let new_score = await this.client.zincrby(this.options.redisKey, value, id);
+        return parseFloat(new_score);
+    }
+
+    /**
+     * Updates the score of an entry only if the provided value is _better_
+     * than the stored one. If the entry doesn't exist, it is created
+     * 
+     * Note: a score is considered better depending on the sort policy
+     * 
+     * @param id entry id
+     * @param score new score for entry
+     * @returns whether the score has been updated
+     */
+    async best(id: ID, score: Score): Promise<boolean> {
+        let result = await (this.options.sortPolicy === 'high-to-low' ?
+            // @ts-ignore
+            this.client.zrevbest(this.options.redisKey, score, id) :
+            // @ts-ignore
+            this.client.zbest(this.options.redisKey, score, id));
+        return result === 1 || result === '1'; // just in case we check both
+    }
+    
     /**
      * Uses IORedis.Pipeline to batch multiple update commands
      * 
@@ -204,4 +252,5 @@ export class Leaderboard {
                 break;
         }
     }
+
 }

@@ -138,19 +138,43 @@ describe('Leaderboard', () => {
                 [-1,  1],
                 [-1, -1],
             ])('%i / %i', (signA, signB) => {
-                test.each([
+                describe.each([
                     // integers
                     [signA * 10, signB * 20],
                     [signA * 20, signB * 10],
                     // floats
                     [signA * 15.5, signB * 25.5],
                     [signA * 25.5, signB * 15.5]
-                ])('from %i to %i', async (a, b) => {
-                    // make sure it doesn't exists
-                    expect(await lb.score("foo")).toBe(null);
-                    await lb.update({ id: "foo", value: a });
-                    await lb.update({ id: "foo", value: b });
-                    expect(await lb.score("foo")).toBe(expectedBehaviour(a, b));
+                ])('from %i to %i', (a, b) => {
+                    const expectedScore = expectedBehaviour(a, b);
+
+                    beforeEach(async () => {
+                        // set initial value
+                        await lb.replace("foo", a);
+                    });
+                    
+                    // should ignore whatever policy is set, always replace
+                    test('replace', async () => {
+                        await lb.replace("foo", b);
+                        expect(await lb.score("foo")).toBe(b);
+                    });
+                    test('incr', async () => {
+                        await lb.incr("foo", b);
+                        expect(await lb.score("foo")).toBe(a + b);
+                    });
+                    test('best', async () => {
+                        await lb.best("foo", b);
+                        expect(await lb.score("foo")).toBe(
+                            sortPolicy === 'high-to-low' ?
+                            Math.max(a, b) : Math.min(a, b)
+                        );
+                    });
+
+
+                    test('update', async () => {
+                        await lb.update({ id: "foo", value: b });
+                        expect(await lb.score("foo")).toBe(expectedScore);
+                    });
                 });
             });
         });
