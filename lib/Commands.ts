@@ -1,6 +1,7 @@
 import { Redis } from "ioredis";
 
-const COMMON = `
+// old code, yet to migrate
+`
 local function slice(array, start, finish)
     local t = {}
     for k = start, finish do
@@ -61,10 +62,6 @@ local function aroundRange(path, is_low_to_high, id, distance, fill_borders)
     return { l, h, c, r };
 end
 `;
-
-export function buildScript(script: string) {
-    return COMMON + ";" + script;
-}
 
 type SortDirection = 'desc' | 'asc';
 

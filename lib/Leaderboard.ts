@@ -1,5 +1,5 @@
-import { Redis, KeyType, Commands, Pipeline } from 'ioredis';
-import { extendRedisClient } from './Common';
+import { Redis, KeyType, Pipeline } from 'ioredis';
+import { extendRedisClient } from './Commands';
 
 /** Entry identifier */
 export type ID = string;
