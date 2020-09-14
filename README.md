@@ -108,7 +108,7 @@ let lb = new Leaderboard(client, {
 });
 ```
 
-### Insert/update/delete entries
+### Insert/update entries
 
 Note that when you update an entry that doesn't exist, it will be created, so update/insert is the same operation.
 
@@ -137,7 +137,7 @@ Note that when you update an entry that doesn't exist, it will be created, so up
     * `value`: [Score]() | [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) score or number to add
 
   #### Return
-  Analogous to the return of `updateOne` but as an array, where the each value matches the order of the entries in the input.
+  Analogous to the return of `updateOne` but as an array, where each value matches the order of the entries in the input.
   #### Example
   ```javascript
   // single
@@ -152,13 +152,16 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   ```
   #### Complexity
   `O(log(N))` for each entry updated, where N is the number of entries in the leaderboard.
+
+### Remove entries
+
 * `remove(ids: ID | ID[])`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)&lt;void&gt; remove one or more entries from the leaderboard
   #### Example
   ```javascript
   // single
   lb.remove("player-1");
   // multiple
-  lb.update(["player-1", "player-2", "player-3"]);
+  lb.remove(["player-1", "player-2", "player-3"]);
   ```
   #### Complexity
   `O(M*log(N))` where N is the number of entries in the leaderboard and M the number of entries to be removed.
