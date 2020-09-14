@@ -151,6 +151,24 @@ export class Leaderboard {
         };
     }
 
+    /**
+     * Retrieve an entry at a specific rank. If the rank is out of bounds,
+     * it returns null.
+     * 
+     * Complexity: `O(log(N))` where N is the number of entries in the
+     *             leaderboard
+     * 
+     * Note: This function is an alias for list(rank, rank)[0]
+     * 
+     * @param rank rank to query
+     */
+    async at(rank: Rank): Promise<Entry | null> {
+        if(rank <= 0)
+            return null;
+        let result = await this.list(rank, rank);
+        return result.length == 0 ? null : result[0];
+    }
+
     //#endregion
 
     //#region Updates
@@ -225,7 +243,7 @@ export class Leaderboard {
 
     //#endregion
 
-    //#region Removal
+    //#region Remove
 
     /**
      * Remove one or more entries from the leaderboard
@@ -246,6 +264,101 @@ export class Leaderboard {
      */
     async clear(): Promise<void> {
         await this.client.del(this.options.redisKey);
+    }
+
+    //#endregion
+
+    //#region Query
+
+    /**
+     * Retrieve entries between ranks
+     * 
+     * Complexity: `O(log(N)+M)` where N is the number of entries in the
+     *             leaderboard and M the number of entries returned
+     * 
+     * @param low lower bound to query (inclusive)
+     * @param high higher bound to query (inclusive)
+     */
+    async list(low: Rank, high: Rank): Promise<Entry[]> {
+        if(low < 1 || high < 1) throw new Error("Out of bounds (<1)");
+        if(low > high) throw new Error(`high must be greater than low (${low} <= ${high})`);
+
+        let result = await this.client[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](this.options.redisKey, low-1, high-1, 'WITHSCORES');
+        let entries: Entry[] = [];
+
+        let rank = low;
+        for (let i = 0; i < result.length; i += 2) {
+            entries.push({
+                id: result[i],
+                score: parseFloat(result[i + 1]),
+                rank: rank++
+            });
+        }
+
+        return entries;
+    }
+    
+    /**
+     * Retrieve the top entries
+     * 
+     * Complexity: `O(log(N)+M)` where N is the number of entries in the
+     *             leaderboard and M is `max`
+     * 
+     * Note: This function is an alias for list(1, max)
+     * 
+     * @param max number of entries to return
+     */
+    top(max: number = 10): Promise<Entry[]> {
+        return this.list(1, max);
+    }
+    
+    /**
+     * Retrieve the entries around an entry
+     * 
+     * Example with distance = 4:
+     * ```
+     * +-----+-----+-----+-----+-----+-----+-----+-----+-----+------+
+     * | 1st | 2nd | 3rd | 4th | 5th | 6th | 7th | 8th | 9th | 10th |
+     * +-----+-----+-----+-----+-----+-----+-----+-----+-----+------+
+     *               ↑
+     *         queried entry
+     * 
+     * Without fillBorders: [ 1st, 2nd, 3rd, 4th, 5th, 6th, 7th ] // 2 + 1 + 4 = 7 elements
+     * With fillBorders:    [ 1st, 2nd, 3rd, 4th, 5th, 6th, 7th, 8th, 9th ] // 2 + 1 + 6 = 9 elements
+     * ```
+     * 
+     * Complexity: `O(log(N)+M)` where N is the number of entries in the
+     *             leaderboard and M is 2*`distance`+1
+     * 
+     * @param id id of the entry at the center
+     * @param distance number of entries at each side of the queried entry
+     * @param fillBorders whether to include entries at the other side if the
+     * entry is too close to one of the borders. In other words, it always
+     * makes sure to have at least 2*`distance`+1 entries (if there are enough
+     * in the leaderboard)
+     */
+    async around(id: ID, distance: number, fillBorders: boolean = false): Promise<Entry[]> {
+        if(distance < 0) throw new Error("distance must be >= 0");
+
+        //@ts-ignore
+        let result = await this.client[this.options.sortPolicy === 'high-to-low' ? 'zrevaround' : 'zaround'](
+            this.options.redisKey,
+            id,
+            distance,
+            (fillBorders === true).toString()
+        );
+
+        let entries: Entry[] = [];
+        let rank = 0;
+        for (let i = 0; i < result[1].length; i += 2) {
+            entries.push({
+                id: result[1][i],
+                score: parseFloat(result[1][i + 1]),
+                rank: 1 + result[0] + rank++
+            });
+        }
+
+        return entries;
     }
 
     //#endregion

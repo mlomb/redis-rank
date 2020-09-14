@@ -113,6 +113,12 @@ describe('Leaderboard', () => {
                 expect(await lb.find("baz")).toMatchObject({ id: "baz", score: 1000, rank: bazRank });
             });
             
+            test('at', async () => {
+                expect(await lb.at(fooRank)).toMatchObject({ id: "foo", score: 10, rank: fooRank });
+                expect(await lb.at(barRank)).toMatchObject({ id: "bar", score: 100, rank: barRank });
+                expect(await lb.at(bazRank)).toMatchObject({ id: "baz", score: 1000, rank: bazRank });
+            });
+
             test('score null', async () => {
                 expect(await lb.score("fail")).toBe(null);
             });
@@ -124,10 +130,25 @@ describe('Leaderboard', () => {
             test('find null', async () => {
                 expect(await lb.find("fail")).toBe(null);
             });
+
+            test('at null', async () => {
+                expect(await lb.at(-100)).toBe(null);
+                expect(await lb.at(100000)).toBe(null);
+            });
+            
+            test('list crash', async () => {
+                expect(lb.list(0, 5)).rejects.toThrow(); // low < 1
+                expect(lb.list(5, 0)).rejects.toThrow(); // high < 1
+                expect(lb.list(10, 5)).rejects.toThrow(); // low > high
+            });
+
+            test('around invalid distance', async () => {
+                expect(lb.around("foo", -1)).rejects.toThrow();
+            });
         });
     });
     
-    describe('update', () => {
+    describe('combinations', () => {
         describe.each([
             ['high-to-low', 'best',      true,  (a: Score, b: Score): Score => Math.max(a, b)],
             ['high-to-low', 'aggregate', true,  (a: Score, b: Score): Score => a + b],
@@ -183,6 +204,60 @@ describe('Leaderboard', () => {
                     expect(await lb.update(FOO_BAR_BAZ)).toStrictEqual([10, 100, 1000]);
                 });
             }
+            
+            describe.each([
+                0, 1, 2, 5, 8, 10
+            ])('queries with %i entrie(s)', (total) => {
+                beforeEach(async () => {
+                    for(let i = 0; i < total; i++) {
+                        await lb.updateOne(`n${i}`, (sortPolicy === 'high-to-low' ? -1 : 1) * 10 * (i + 1));
+                    }
+                });
+
+                test.each([
+                    1, 2, 6, 10
+                ])('top %i', async (top) => {
+                    let r = top === 10 ? await lb.top() : await lb.top(top);
+                    expect(r.length).toBe(Math.min(top, total));
+                    for(let i = 0; i < r.length; i++)
+                        expect(r[i].id).toBe(`n${i}`);
+                });
+                
+                test.each([
+                    [0, Math.min(total-1, 5), false],
+                    [1, Math.min(total-1, 5), false],
+                    [2, Math.min(total-1, 5), false],
+                    [4, Math.min(total-1, 3), false],
+                    [7, Math.min(total-1, 9), false],
+                    [3, Math.min(total-1, 7), false],
+
+                    [0, Math.min(total-1, 5), true],
+                    [1, Math.min(total-1, 5), true],
+                    [2, Math.min(total-1, 5), true],
+                    [4, Math.min(total-1, 3), true],
+                    [7, Math.min(total-1, 9), true],
+                    [3, Math.min(total-1, 7), true]
+                ])('around d=%i e=n%i fill=%s', async (distance, entry, fill) => {
+                    let id = `n${entry}`;
+                    let r = await lb.around(id, distance, fill);
+                    if(fill) {
+                        expect(r.length).toBe(Math.min(total, 2*distance+1));
+                    } else {
+                        expect(r.length).toBe(Math.min(total, Math.min(
+                            Math.min(entry, distance)+1+distance, // left
+                            distance+1+(total-1-entry) // right
+                        )));
+                    }
+                    if(r.length > 0) {
+                        // check that the ranks are increasing
+                        for(let i = 1; i < r.length; i++)
+                            expect(r[i].rank).toBeGreaterThan(r[i-1].rank);
+                        // check that the entry queried is in the result
+                        expect(r.map(x => x.id)).toContain(id);
+                        // we could make more tests, but meh
+                    }
+                });
+            });
 
             describe.each([
                 [ 1,  1],
