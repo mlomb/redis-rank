@@ -46,8 +46,7 @@ export type LeaderboardOptions = {
      * Keep only the top N entries, determined by the sort policy.
      * This lets you limit the number of entries stored, thus saving memory
      * 
-     * If it is not specified, or the value is `0`, it means that there is
-     * no limit
+     * If not specified, or the value is `0`, then there is no limit
      */
     limitTopN?: number
 }
