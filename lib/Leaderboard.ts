@@ -97,17 +97,6 @@ export class Leaderboard {
         return this.client.zcard(this.options.redisKey);
     }
 
-    /**
-     * Remove all the entries from the leaderboard
-     * 
-     * Note: it will delete the underlying Redis key
-     * 
-     * Complexity: `O(N)` where N is the number of entries in the leaderboard
-     */
-    async clear() {
-        await this.client.del(this.options.redisKey);
-    }
-
     //#endregion
 
     //#region Basic retrival
@@ -236,12 +225,38 @@ export class Leaderboard {
 
     //#endregion
 
+    //#region Removal
+
+    /**
+     * Remove one or more entries from the leaderboard
+     * 
+     * Complexity: `O(M*log(N))` where N is the number of entries in the
+     * leaderboard and M the number of entries to be removed
+     */
+    async remove(ids: ID | ID[]): Promise<void> {
+        await this.client.zrem(this.options.redisKey, ids);
+    }
+    
+    /**
+     * Remove all the entries from the leaderboard
+     * 
+     * Note: it will delete the underlying Redis key
+     * 
+     * Complexity: `O(N)` where N is the number of entries in the leaderboard
+     */
+    async clear(): Promise<void> {
+        await this.client.del(this.options.redisKey);
+    }
+
+    //#endregion
+
     //#region Util
 
     static async execPipeline(pipeline: Pipeline): Promise<any[]> {
         let outputs = await pipeline.exec();
         let results = [];
         for (let [err, result] of outputs) {
+            /* istanbul ignore next */
             if (err) throw err;
             results.push(result);
         }

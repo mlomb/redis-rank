@@ -47,7 +47,7 @@ describe('Leaderboard', () => {
         });
     });
     
-    describe('clear', () => {
+    describe('remove', () => {
         beforeEach(() => {
             lb = new Leaderboard(rc, {
                 redisKey: TEST_KEY,
@@ -56,12 +56,28 @@ describe('Leaderboard', () => {
             });
         });
 
-        test('clearing', async () => {
+        test('clear', async () => {
             expect(await lb.count()).toBe(0);
             await lb.update(FOO_BAR_BAZ);
             expect(await lb.count()).toBe(FOO_BAR_BAZ.length);
             await lb.clear();
             expect(await lb.count()).toBe(0);
+        });
+
+        test('remove single', async () => {
+            expect(await lb.count()).toBe(0);
+            await lb.update(FOO_BAR_BAZ);
+            expect(await lb.count()).toBe(3);
+            await lb.remove("foo");
+            expect(await lb.count()).toBe(2);
+        });
+
+        test('remove multi', async () => {
+            expect(await lb.count()).toBe(0);
+            await lb.update(FOO_BAR_BAZ);
+            expect(await lb.count()).toBe(3);
+            await lb.remove(["foo", "baz"]);
+            expect(await lb.count()).toBe(1);
         });
     });
 
