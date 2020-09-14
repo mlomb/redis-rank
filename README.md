@@ -6,6 +6,9 @@
 
 Back-end to generate and manage leaderboards using [Redis](https://redis.io/). Written in [TypeScript](https://www.typescriptlang.org/) and [Promise-based](https://developer.mozilla.org/es/docs/Web/JavaScript/Referencia/Objetos_globales/Promise).
 
+## **v2.0 is on the works!**
+Switch to branch `v2` to check out the progress!
+
 # Features
 
 All the library is promise based.
