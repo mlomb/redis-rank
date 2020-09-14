@@ -73,9 +73,19 @@ Are you ready? [Jump to the examples](#insertupdatedelete-entries).
 
 # Usage & API
 
+(TODO: fix links ↓)
+
+* [Leaderboard]()
+  * [Constructor]()
+  * [Insert/update entries]()
+  * [Remove entries]()
+  * [Find entries]()
+  * [List entries]()
+  * [Information]()
+
 ## Leaderboard
 
-Plain and simple leaderboard.
+Plain and simple leaderboard. Ranks are 1-based.
 
 ### Constructor
 
@@ -123,12 +133,13 @@ Note that when you update an entry that doesn't exist, it will be created, so up
 
   #### Example
   ```javascript
-  lb.updateOne("player-1", 999);
+  await lb.updateOne("player-1", 999);
   ```
   #### Complexity
   `O(log(N))` where N is the number of entries in the leaderboard.
 
   Note: why [Score]() | [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)? When the update policy is set to `replace` or `best` the value should be a Score, but when the update policy is set to `aggregate` it behaves more like an amount than a full score. Either way, both are [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number).
+
 * `update(entries: EntryUpdateQuery | EntryUpdateQuery[])`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Score]()[] | void[]> update one or more entries  
   This method is very similar to `updateOne`, but it lets you update multiple entries in one go.
 
@@ -141,9 +152,9 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   #### Example
   ```javascript
   // single
-  lb.update({ id: "player-1", value: 999 });
+  await lb.update({ id: "player-1", value: 999 });
   // multiple
-  lb.update([
+  await lb.update([
     { id: "player-1", value: 123 },
     { id: "player-2", value: 420 },
     { id: "player-3", value: 777 },
@@ -159,16 +170,61 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   #### Example
   ```javascript
   // single
-  lb.remove("player-1");
+  await lb.remove("player-1");
   // multiple
-  lb.remove(["player-1", "player-2", "player-3"]);
+  await lb.remove(["player-1", "player-2", "player-3"]);
   ```
   #### Complexity
   `O(M*log(N))` where N is the number of entries in the leaderboard and M the number of entries to be removed.
+
 * `clear()`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)&lt;void&gt; remove all the entries from the leaderboard  
   Note: it will delete the underlying Redis key  
+  #### Example
+  ```javascript
+  await lb.clear();
+  // leaderboard is no more
+  ```
   #### Complexity
   `O(N)` where N is the number of entries in the leaderboard.
+
+### Find entries
+
+* `score(id: ID)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Score]() | null> retrieve the score of an entry, null if it doesn't exist
+  #### Example
+  ```javascript
+  await lb.score("player-1"); /// === 999
+  await lb.score("non-existant"); /// === null
+  ```
+  #### Complexity
+  `O(1)`
+
+* `rank(id: ID)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Rank]() | null> retrieve the rank of an entry, null if it doesn't exist
+  #### Example
+  ```javascript
+  await lb.rank("player-1"); /// === 3
+  await lb.rank("non-existant"); /// === null
+  ```
+  #### Complexity
+  `O(log(N))` where N is the number of entries in the leaderboard.
+
+* `find(id: ID)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Entry]() | null> retrieve an entry, null if it doesn't exist  
+
+  `Entry`:
+    * `id`: [ID]() id
+    * `score`: [Score]() score
+    * `rank`: [Rank]() rank
+  #### Example
+  ```javascript
+  await lb.find("player-1"); /// === { "id": "player-1", score: 999, rank: 3 }
+  await lb.find("non-existant"); /// === null
+  ```
+  #### Complexity
+  `O(log(N))` where N is the number of entries in the leaderboard.
+
+### List entries
+
+TODO
+
 ### Information
 
 * `count()`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)> returns the number of entries stored in the leaderboard. Complexity: `O(1)`

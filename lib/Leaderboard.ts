@@ -102,7 +102,7 @@ export class Leaderboard {
     //#region Basic retrival
 
     /**
-     * Retrieves the score of an entry. If it doesn't exist, it returns null
+     * Retrieve the score of an entry. If it doesn't exist, it returns null
      * 
      * Complexity: `O(1)`
      * 
@@ -114,7 +114,7 @@ export class Leaderboard {
     }
 
     /**
-     * Retrieves the rank of an entry. If it doesn't exist, it returns null.
+     * Retrieve the rank of an entry. If it doesn't exist, it returns null.
      * 1-based
      * 
      * Complexity: `O(log(N))` where N is the number of entries in the
@@ -130,7 +130,7 @@ export class Leaderboard {
     }
 
     /**
-     * Retrieves an entry. If it doesn't exist, it returns null.
+     * Retrieve an entry. If it doesn't exist, it returns null.
      * 
      * Complexity: `O(log(N))` where N is the number of entries in the
      *             leaderboard
