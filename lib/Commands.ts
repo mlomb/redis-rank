@@ -100,11 +100,13 @@ const zfind = (dir: SortDirection) => `
 /**
  * Defines multiple commands useful to manage leaderboards:
  * * `zbest`: replace the score of the specified member if it doesn't exist or
- *   the provided score is **higher** than the old one
+ * the provided score is **higher** than the old one. Returns the updated score
  * * `zrevbest`: replace the score of the specified member if it doesn't exist
- *   or the provided score is **lower** than the old one
- * * `zfind`: find the score and rank (asc) of a given member
- * * `zrevfind`: find the score and rank (desc) of a given member
+ * or the provided score is **lower** than the old one. Returns the updated score
+ * * `zfind`: find the score and rank (asc) of a given member.
+ * Returns [score, rank]
+ * * `zrevfind`: find the score and rank (desc) of a given member.
+ * Returns [score, rank]
  * 
  * @see https://github.com/luin/ioredis#lua-scripting
  * @param client the client to define the commands

@@ -87,6 +87,8 @@ export class Leaderboard {
         extendRedisClient(this.client);
     }
 
+    //#region Basic operations
+
     /**
      * Retrieve the number of entries in the leaderboard
      * 
@@ -106,6 +108,10 @@ export class Leaderboard {
     async clear() {
         await this.client.del(this.options.redisKey);
     }
+
+    //#endregion
+
+    //#region Basic retrival
 
     /**
      * Retrieves the score of an entry. If it doesn't exist, it returns null
@@ -132,7 +138,7 @@ export class Leaderboard {
         let rank = await (this.options.sortPolicy === 'high-to-low' ?
             this.client.zrevrank(this.options.redisKey, id) :
             this.client.zrank(this.options.redisKey, id));
-        return rank === null ? null : (rank+1);
+        return rank === null ? null : (rank + 1);
     }
 
     /**
@@ -153,9 +159,13 @@ export class Leaderboard {
         return (result[0] === false || result[1] === false || result[0] === null || result[1] === null) ? null : {
             id: id,
             score: parseFloat(result[0]),
-            rank: result[1]+1
+            rank: result[1] + 1
         };
     }
+
+    //#endregion
+
+    //#region Updates
 
     /**
      * Update one entry. If the entry does not exists, it will be created.
@@ -188,7 +198,7 @@ export class Leaderboard {
     async update(entries: EntryUpdateQuery | EntryUpdateQuery[]): Promise<Score[] | void[]> {
         if (!Array.isArray(entries))
             entries = [entries];
-        
+
         let pipeline = this.client.pipeline();
         this.updatePipe(entries, pipeline);
         this.postInsert(pipeline);
@@ -224,21 +234,25 @@ export class Leaderboard {
     private postInsert(pipeline: Pipeline) {
         // TODO: check top N
     }
-    
+
+    //#endregion
+
+    //#region Util
+
     static async execPipeline(pipeline: Pipeline): Promise<any[]> {
         let outputs = await pipeline.exec();
         let results = [];
-        for(let [err, result] of outputs) {
-            if(err) throw err;
+        for (let [err, result] of outputs) {
+            if (err) throw err;
             results.push(result);
         }
         return results;
     }
-    
+
     public get redisClient(): Redis {
         return this.client;
     }
-    
+
     public get redisKey(): KeyType {
         return this.options.redisKey;
     }
@@ -246,8 +260,10 @@ export class Leaderboard {
     public get sortPolicy(): SortPolicy {
         return this.options.sortPolicy;
     }
-    
+
     public get updatePolicy(): UpdatePolicy {
         return this.options.updatePolicy;
     }
+
+    //#endregion
 }
