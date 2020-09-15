@@ -190,7 +190,7 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   await lb.list(100, 200); /// === [{ id: "n100", score: 100, rank: 100 }, ... 99 more]
   ```
   #### Complexity
-  `O(log(N)+M)` where N is the number of entries in the leaderboard and M the number of entries returned (`max` - `min`)
+  `O(log(N)+M)` where N is the number of entries in the leaderboard and M the number of entries returned (`high` - `low` + 1)
 
 * `around(id: ID, distance: number, fillBorders?: boolean = false)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Entry]()[]> retrieve the entries around an entry
   * `id`: [ID]() id of the entry at the center
@@ -203,16 +203,31 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:----:|
   |     |     |  **↑**  |     |     |     |     |     |     |      |
 
-  Now we use `around("3rd", 4, ____)`...
-  * `fillBorders`=`false`: [ 1st, 2nd, **3rd**, 4th, 5th, 6th, 7th ] (default)
-    * 2 + 1 + 4 = 7 elements
-  * `fillBorders`=`true`:    [ 1st, 2nd, **3rd**, 4th, 5th, 6th, 7th, 8th, 9th ]
-    * 2 + 1 + 6 = 9 elements
+  Now we use `around("3rd", 4, fillBorders)` with
+  * `fillBorders`=`false` → [ 1st, 2nd, **3rd**, 4th, 5th, 6th, 7th ] (default)
+    * got 2 + 1 + 4 = 7 elements
+  * `fillBorders`=`true` → [ 1st, 2nd, **3rd**, 4th, 5th, 6th, 7th, 8th, 9th ]
+    * got 2 + 1 + 6 = 9 elements
 
 
   #### Example
   ```javascript
-  await lb.list(100, 200); /// === [{ id: "n100", score: 100, rank: 100 }, ... 99 more]
+  await lb.around("3rd", 4); // fillBorders=false by default
+  /// === [
+  /// { id: "1st", score: 99, rank: 1 },
+  /// { id: "2nd", score: 88, rank: 2 },
+  /// { id: "3rd", score: 77, rank: 3 },
+  /// ... 4 more
+  /// ]
+  ```
+  ```javascript
+  await lb.around("3rd", 4, true);
+  /// === [
+  /// { id: "1st", score: 99, rank: 1 },
+  /// { id: "2nd", score: 88, rank: 2 },
+  /// { id: "3rd", score: 77, rank: 3 },
+  /// ... 6 more
+  /// ]
   ```
   #### Complexity
   `O(log(N)+M)` where N is the number of entries in the leaderboard and M is (2*`distance`+1)
