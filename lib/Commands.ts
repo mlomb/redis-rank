@@ -1,53 +1,10 @@
 import { Redis } from "ioredis";
 
-// old code, yet to migrate
-`
-local function slice(array, start, finish)
-    local t = {}
-    for k = start, finish do
-        t[#t+1] = array[k]
-    end
-    return t
-end
-
-local function retrieveEntry(id, feature_keys)
-    local features = {}
-
-    while #feature_keys > 0 do
-        local key = table.remove(feature_keys, 1)
-        features[#features+1] = redis.call('ZSCORE', key, id)
-    end
-
-    return features
-end
-
-local function retrieveEntries(path, is_low_to_high, feature_keys, low, high)
-    local ids = redis.call((is_low_to_high == 'true') and 'zrange' or 'zrevrange', path, low, high);
-    local features = {}
-
-    while #feature_keys > 0 do
-        local key = table.remove(feature_keys, 1)
-
-        local scores = {}
-        for n = 1, #ids, 1 do
-            table.insert(scores, redis.call('ZSCORE', key, ids[n]))
-        end
-        features[#features+1] = scores
-    end
-
-    -- [
-    --   ['foo', 'bar', 'baz'],
-    --   [ [1, 2, 3], [4, 5, 6] ]
-    -- ]
-    return { ids, features }
-end
-`;
-
 type SortDirection = 'desc' | 'asc';
 
 /**
  * `KEYS[1]`: leaderboard key  
- * `ARGV[1]`: entry score
+ * `ARGV[1]`: entry score  
  * `ARGV[2]`: entry id
  * 
  * Returns the final score
@@ -83,7 +40,7 @@ const zfind = (dir: SortDirection) => `
  * `ARGV[2]`: distance  
  * `ARGV[3]`: fill_borders ('true' or 'false')
  * 
- * Returns [ lowest_rank, [[score, rank], ...] ]
+ * Returns [ lowest_rank, [[id, score], ...] ]
  */
 const zaround = (dir: SortDirection) => `
 local function aroundRange(path, id, distance, fill_borders)

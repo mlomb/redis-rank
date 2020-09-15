@@ -3,7 +3,6 @@ import {
     SortPolicy,
     UpdatePolicy,
     Score,
-    Rank,
     EntryUpdateQuery
 } from '../lib/index';
 import rc from './redis';

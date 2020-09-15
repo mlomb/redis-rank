@@ -86,21 +86,6 @@ export class Leaderboard {
         extendRedisClient(this.client);
     }
 
-    //#region Basic operations
-
-    /**
-     * Retrieve the number of entries in the leaderboard
-     * 
-     * Complexity: `O(1)`
-     */
-    count(): Promise<number> {
-        return this.client.zcard(this.options.redisKey);
-    }
-
-    //#endregion
-
-    //#region Basic retrival
-
     /**
      * Retrieve the score of an entry. If it doesn't exist, it returns null
      * 
@@ -115,7 +100,6 @@ export class Leaderboard {
 
     /**
      * Retrieve the rank of an entry. If it doesn't exist, it returns null.
-     * 1-based
      * 
      * Complexity: `O(log(N))` where N is the number of entries in the
      *             leaderboard
@@ -168,10 +152,6 @@ export class Leaderboard {
         let result = await this.list(rank, rank);
         return result.length == 0 ? null : result[0];
     }
-
-    //#endregion
-
-    //#region Updates
 
     /**
      * Update one entry. If the entry does not exists, it will be created.
@@ -241,10 +221,6 @@ export class Leaderboard {
         // TODO: check top N
     }
 
-    //#endregion
-
-    //#region Remove
-
     /**
      * Remove one or more entries from the leaderboard
      * 
@@ -265,10 +241,6 @@ export class Leaderboard {
     async clear(): Promise<void> {
         await this.client.del(this.options.redisKey);
     }
-
-    //#endregion
-
-    //#region Query
 
     /**
      * Retrieve entries between ranks
@@ -361,19 +333,13 @@ export class Leaderboard {
         return entries;
     }
 
-    //#endregion
-
-    //#region Util
-
-    static async execPipeline(pipeline: Pipeline): Promise<any[]> {
-        let outputs = await pipeline.exec();
-        let results = [];
-        for (let [err, result] of outputs) {
-            /* istanbul ignore next */
-            if (err) throw err;
-            results.push(result);
-        }
-        return results;
+    /**
+     * Retrieve the number of entries in the leaderboard
+     * 
+     * Complexity: `O(1)`
+     */
+    count(): Promise<number> {
+        return this.client.zcard(this.options.redisKey);
     }
 
     public get redisClient(): Redis {
@@ -392,5 +358,14 @@ export class Leaderboard {
         return this.options.updatePolicy;
     }
 
-    //#endregion
+    static async execPipeline(pipeline: Pipeline): Promise<any[]> {
+        let outputs = await pipeline.exec();
+        let results = [];
+        for (let [err, result] of outputs) {
+            /* istanbul ignore next */
+            if (err) throw err;
+            results.push(result);
+        }
+        return results;
+    }
 }
