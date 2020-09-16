@@ -134,6 +134,11 @@ describe('Leaderboard', () => {
                 expect(await lb.at(-100)).toBe(null);
                 expect(await lb.at(100000)).toBe(null);
             });
+
+            test('bottom crash', async () => {
+                expect(lb.bottom(0)).rejects.toThrow();
+                expect(lb.bottom(-1)).rejects.toThrow();
+            });
             
             test('list crash', async () => {
                 expect(lb.list(0, 5)).rejects.toThrow(); // low < 1
@@ -220,6 +225,16 @@ describe('Leaderboard', () => {
                     expect(r.length).toBe(Math.min(top, total));
                     for(let i = 0; i < r.length; i++)
                         expect(r[i].id).toBe(`n${i}`);
+                });
+                test.each([
+                    1, 2, 6, 10
+                ])('bottom %i', async (bottom) => {
+                    let r = bottom === 10 ? await lb.bottom() : await lb.bottom(bottom);
+                    expect(r.length).toBe(Math.min(bottom, total));
+                    for(let i = 0; i < r.length; i++) {
+                        expect(r[i].rank === total - i);
+                        expect(r[i].id).toBe(`n${total-i-1}`);
+                    }
                 });
                 
                 test.each([

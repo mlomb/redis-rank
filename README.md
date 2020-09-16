@@ -73,6 +73,7 @@ Continue reading for a TL;DR, or [jump to the full documentation](API.md).
 
 # TL;DR
 
+Ranks are 1-based.  
 The detailed API documentation can be found in [API.md](API.md).
 
 ### Leaderboard
@@ -108,6 +109,7 @@ await lb.at(3); /// === { id: "player-1", score: 123, rank: 3 }
 
 // query
 await lb.top(10); /// === [{ id: "n1", score: 999, rank: 1 }, ... 9 more]
+await lb.bottom(10); /// === [{ id: "n10", score: 111, rank: 10 }, ... 9 more]
 await lb.list(100, 200); /// === [{ id: "n100", score: 100, rank: 100 }, ... 99 more]
 await lb.around("player-1", 4); /// === [... 4 more, { id: "player-1", score: 100, rank: 5 }, ... 4 more]
 
@@ -117,7 +119,7 @@ await lb.count(); /// === 3
 
 # Running tests
 
-A Redis server with default configuration is expected in localhost.
+A Redis server in localhost without password is expected.
 
 ⚠️ Note: **The database #15 will be flushed** ⚠️
 

@@ -173,11 +173,20 @@ Note that when you update an entry that doesn't exist, it will be created, so up
 
 ### List entries
 
-* `top(top: number)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Entry]()[]> retrieve the top entries
-  * `top`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) number of entries to return
+* `top(max: number)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Entry]()[]> retrieve the top entries
+  * `max`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) number of entries to return
   #### Example
   ```javascript
   await lb.top(10); /// === [{ id: "n1", score: 999, rank: 1 }, ... 9 more]
+  ```
+  #### Complexity
+  `O(log(N)+M)` where N is the number of entries in the leaderboard and M is `max`
+
+* `bottom(max: number)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Entry]()[]> retrieve the bottom entries
+  * `max`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) number of entries to return
+  #### Example
+  ```javascript
+  await lb.bottom(10); /// === [{ id: "n10", score: 111, rank: 10 }, ... 9 more]
   ```
   #### Complexity
   `O(log(N)+M)` where N is the number of entries in the leaderboard and M is `max`
@@ -187,7 +196,7 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   * `high`: [Rank]() higher bound to query (inclusive)
   #### Example
   ```javascript
-  await lb.list(100, 200); /// === [{ id: "n100", score: 100, rank: 100 }, ... 99 more]
+  await lb.list(100, 200); /// === [{ id: "n100", score: 100, rank: 100 }, ... 100 more]
   ```
   #### Complexity
   `O(log(N)+M)` where N is the number of entries in the leaderboard and M the number of entries returned (`high` - `low` + 1)

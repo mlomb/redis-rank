@@ -285,6 +285,37 @@ export class Leaderboard {
     }
     
     /**
+     * Retrieve the bottom entries
+     * 
+     * Complexity: `O(log(N)+M)` where N is the number of entries in the
+     *             leaderboard and M is `max`
+     * 
+     * @param max number of entries to return
+     */
+    async bottom(max: number = 10): Promise<Entry[]> {
+        if(max < 1) throw new Error("Out of bounds (<1)");
+
+        let pipeline = this.client.pipeline();
+        pipeline.zcard(this.redisKey);
+        pipeline[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](this.options.redisKey, -max, -1, 'WITHSCORES');
+        let results = await Leaderboard.execPipeline(pipeline);
+        
+        let entries: Entry[] = [];
+
+        let list: any[] = results[1];
+        let rank: Rank = results[0] - list.length + 1;
+        for (let i = 0; i < list.length; i += 2) {
+            entries.push({
+                id: list[i],
+                score: parseFloat(list[i + 1]),
+                rank: rank++,
+            });
+        }
+
+        return entries.reverse();
+    }
+    
+    /**
      * Retrieve the entries around an entry
      * 
      * Example with distance = 4:
