@@ -285,7 +285,7 @@ export class Leaderboard {
     }
     
     /**
-     * Retrieve the bottom entries
+     * Retrieve the bottom entries (from worst to better)
      * 
      * Complexity: `O(log(N)+M)` where N is the number of entries in the
      *             leaderboard and M is `max`

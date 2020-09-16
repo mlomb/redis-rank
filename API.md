@@ -182,7 +182,7 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   #### Complexity
   `O(log(N)+M)` where N is the number of entries in the leaderboard and M is `max`
 
-* `bottom(max: number)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Entry]()[]> retrieve the bottom entries
+* `bottom(max: number)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Entry]()[]> retrieve the bottom entries  (from worst to better)
   * `max`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) number of entries to return
   #### Example
   ```javascript
