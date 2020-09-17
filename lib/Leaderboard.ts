@@ -162,11 +162,12 @@ export class Leaderboard {
      * 
      * @param id entry id
      * @param value amount or score
+     * @param updatePolicy override the default update policy only for this update
      * @returns if the update policy is `aggregate` or `best` then the final
      * score otherwise void
      */
-    async updateOne(id: ID, value: Score | number): Promise<Score | void> {
-        return (await this.update([{ id, value }]))[0];
+    async updateOne(id: ID, value: Score | number, updatePolicy?: UpdatePolicy): Promise<Score | void> {
+        return (await this.update([{ id, value }], updatePolicy))[0];
     }
 
     /**
@@ -178,15 +179,16 @@ export class Leaderboard {
      * entries in the leaderboard
      * 
      * @param entries entry or list of entries to update
+     * @param updatePolicy override the default update policy only for this update
      * @returns if the update policy is `aggregate` or `best` then the final
      * score for each entry otherwise void
      */
-    async update(entries: EntryUpdateQuery | EntryUpdateQuery[]): Promise<Score[] | void[]> {
+    async update(entries: EntryUpdateQuery | EntryUpdateQuery[], updatePolicy?: UpdatePolicy): Promise<Score[] | void[]> {
         if (!Array.isArray(entries))
             entries = [entries];
 
         let pipeline = this.client.pipeline();
-        this.updatePipe(entries, pipeline);
+        this.updatePipe(entries, pipeline, updatePolicy);
         this.postInsert(pipeline);
         return (await Leaderboard.execPipeline(pipeline)).map(parseFloat);
     }
@@ -197,11 +199,12 @@ export class Leaderboard {
      * @see update  
      * @param entries list of entries to update
      * @param pipeline ioredis pipeline
+     * @param updatePolicy override the default update policy only for this update
      */
-    updatePipe(entries: EntryUpdateQuery[], pipeline: Pipeline) {
+    updatePipe(entries: EntryUpdateQuery[], pipeline: Pipeline, updatePolicy?: UpdatePolicy) {
         let fn: any = null;
 
-        switch (this.options.updatePolicy) {
+        switch (updatePolicy || this.options.updatePolicy) {
             case 'replace': fn = pipeline.zadd.bind(pipeline); break;
             case 'aggregate': fn = pipeline.zincrby.bind(pipeline); break;
             case 'best':

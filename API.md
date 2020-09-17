@@ -65,26 +65,31 @@ let lb = new Leaderboard(client, {
 
 Note that when you update an entry that doesn't exist, it will be created, so update/insert is the same operation.
 
-* `updateOne(id: ID, value: Score | number)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Score]() | void> update a single entry
+* `updateOne(id: ID, value: Score | number, updatePolicy?: UpdatePolicy)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Score]() | void> update a single entry
   * `id`: [ID]() id of the entry to update
   * `value`: [Score]() | [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) score or number to add
+  * `updatePolicy`?: [UpdatePolicy]() override the default update policy **only for this update**
 
   The update behaviour is determined by the sort and update policies.
 
   #### Return
-  If the return policy is  `aggregate` or `best` then the method will return the final score (the addition or the score which was better), otherwise void.
+  If the update policy is  `aggregate` or `best` then the method will return the final score (the addition or the score which was better), otherwise void.
 
   #### Example
   ```javascript
   await lb.updateOne("player-1", 999);
+  
+  // override update policy
+  await lb.updateOne("player-1", 999, 'replace');
   ```
   #### Complexity
   `O(log(N))` where N is the number of entries in the leaderboard.
 
   Note: why [Score]() | [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)? When the update policy is set to `replace` or `best` the value should be a Score, but when the update policy is set to `aggregate` it behaves more like an amount than a full score. Either way, both are [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number).
 
-* `update(entries: EntryUpdateQuery | EntryUpdateQuery[])`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Score]()[] | void[]> update one or more entries  
+* `update(entries: EntryUpdateQuery | EntryUpdateQuery[], updatePolicy?: UpdatePolicy)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Score]()[] | void[]> update one or more entries  
   * `entries`: [EntryUpdateQuery]() | [EntryUpdateQuery]()[] entry or entries to update
+  * `updatePolicy`?: [UpdatePolicy]() override the default update policy **only for this update**
 
   This method is very similar to `updateOne`, but it lets you update multiple entries in one go.
 
@@ -101,6 +106,8 @@ Note that when you update an entry that doesn't exist, it will be created, so up
     { id: "player-3", value: 777 },
     { id: "player-4", value: 696 }
   ]);
+  // override update policy
+  await lb.update({ id: "player-1", value: 999 }, 'replace');
   ```
   #### Complexity
   `O(log(N))` for each entry updated, where N is the number of entries in the leaderboard.

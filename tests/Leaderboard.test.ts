@@ -194,6 +194,24 @@ describe('Leaderboard', () => {
                 for(let e of FOO_BAR_BAZ)
                     expect(await lb.score(e.id)).toBe(e.value);
             });
+
+            describe('update override', () => {
+                beforeEach(async () => {
+                    await lb.update(FOO_BAR_BAZ); // (non existant, will create)
+                });
+
+                // now test overrides
+                test('replace override', async () => {
+                    await lb.updateOne("foo", 6969, 'replace');
+                    expect(await lb.score("foo")).toBe(6969);
+                });
+                test('aggregate override', async () => {
+                    expect(await lb.updateOne("foo", 6969, 'aggregate')).toBe(10 + 6969);
+                });
+                test('best override', async () => {
+                    expect(await lb.updateOne("foo", 6969, 'best')).toBe(sortPolicy === 'high-to-low' ? 6969 : 10);
+                });
+            });
             
             if(shouldReturnFinalScore) {
                 test('updateOne return score', async () => {
