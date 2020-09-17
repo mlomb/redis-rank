@@ -78,7 +78,7 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   #### Example
   ```javascript
   await lb.updateOne("player-1", 999);
-  
+
   // override update policy
   await lb.updateOne("player-1", 999, 'replace');
   ```
@@ -211,7 +211,7 @@ Note that when you update an entry that doesn't exist, it will be created, so up
 * `around(id: ID, distance: number, fillBorders?: boolean = false)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Entry]()[]> retrieve the entries around an entry
   * `id`: [ID]() id of the entry at the center
   * `distance`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) number of entries at each side of the queried entry
-  * `fillBorders`?: [boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean) whether to include entries at the other side if the entry is too close to one of the borders. In other words, it always makes sure to have at least 2*`distance`+1 entries (if there are enough in the leaderboard)
+  * `fillBorders`?: [boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean) whether to include entries at the other side if the entry is too close to one of the borders. In other words, it always makes sure to return at least 2*`distance`+1 entries (if there are enough in the leaderboard)
   #### Fill borders
   Let's say we have the following entries and we query the 3rd entry:  
   

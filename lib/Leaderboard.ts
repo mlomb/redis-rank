@@ -352,7 +352,7 @@ export class Leaderboard {
      * @param distance number of entries at each side of the queried entry
      * @param fillBorders whether to include entries at the other side if the
      * entry is too close to one of the borders. In other words, it always
-     * makes sure to have at least 2*`distance`+1 entries (if there are enough
+     * makes sure to return at least 2*`distance`+1 entries (if there are enough
      * in the leaderboard)
      */
     async around(id: ID, distance: number, fillBorders: boolean = false): Promise<Entry[]> {
