@@ -79,6 +79,25 @@ return {
 `;
 
 /**
+ * `KEYS[1]`: leaderboard key  
+ * `ARGV[1]`: top N  
+ */
+const zkeeptop = (dir: SortDirection) => `
+local c = redis.call('zcard', KEYS[1]);
+local n = tonumber(ARGV[1])
+local dif = c - n
+if dif > 0 then
+    ${dir === 'asc' ? `
+    -- low to high
+    redis.call('zremrangebyrank', KEYS[1], -1, - dif)
+    ` : `
+    -- high to low
+    redis.call('zremrangebyrank', KEYS[1], 0, dif - 1)
+    `}
+end
+`;
+
+/**
  * Defines multiple commands useful to manage leaderboards:
  * * `zbest` & `zrevbest`: replace the score of the specified member if it
  * doesn't exist or the provided score is (**lower** / **higher**)
@@ -86,15 +105,18 @@ return {
  * * `zfind` & `zrevfind`: find the score and rank of a given member
  * * `zaround` & `zrevaround`: return the entries around an entry in a defined
  * distance with a fill border policy
+ * * `zkeeptop` & `zrevkeeptop`: removes all members that are not in the top N
  * 
  * @see https://github.com/luin/ioredis#lua-scripting
  * @param client the client to define the commands
  */
 export function extendRedisClient(client: Redis) {
-    client.defineCommand("zbest",      { numberOfKeys: 1, lua: zbest('asc')    });
-    client.defineCommand("zrevbest",   { numberOfKeys: 1, lua: zbest('desc')   });
-    client.defineCommand("zfind",      { numberOfKeys: 1, lua: zfind('asc')    });
-    client.defineCommand("zrevfind",   { numberOfKeys: 1, lua: zfind('desc')   });
-    client.defineCommand("zaround",    { numberOfKeys: 1, lua: zaround('asc')  });
-    client.defineCommand("zrevaround", { numberOfKeys: 1, lua: zaround('desc') });
+    client.defineCommand("zbest",       { numberOfKeys: 1, lua: zbest('asc')    });
+    client.defineCommand("zrevbest",    { numberOfKeys: 1, lua: zbest('desc')   });
+    client.defineCommand("zfind",       { numberOfKeys: 1, lua: zfind('asc')    });
+    client.defineCommand("zrevfind",    { numberOfKeys: 1, lua: zfind('desc')   });
+    client.defineCommand("zaround",     { numberOfKeys: 1, lua: zaround('asc')  });
+    client.defineCommand("zrevaround",  { numberOfKeys: 1, lua: zaround('desc') });
+    client.defineCommand("zkeeptop",    { numberOfKeys: 1, lua: zkeeptop('asc')  });
+    client.defineCommand("zrevkeeptop", { numberOfKeys: 1, lua: zkeeptop('desc') });
 }

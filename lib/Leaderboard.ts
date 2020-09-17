@@ -189,12 +189,28 @@ export class Leaderboard {
 
         let pipeline = this.client.pipeline();
         this.updatePipe(entries, pipeline, updatePolicy);
-        this.postInsert(pipeline);
-        return (await Leaderboard.execPipeline(pipeline)).map(parseFloat);
+        return (await this.execPipelineAndLimit(pipeline)).map(parseFloat);
+    }
+
+    private async execPipelineAndLimit(pipeline: Pipeline) {
+        let limited = this.options.limitTopN && this.options.limitTopN > 0;
+        if(limited) {
+            if(this.options.sortPolicy === 'high-to-low')
+                // @ts-ignore
+                pipeline.zrevkeeptop(this.options.redisKey, this.options.limitTopN);
+            else
+                // @ts-ignore
+                pipeline.zkeeptop(this.options.redisKey, this.options.limitTopN)
+        }
+
+        let result = await Leaderboard.execPipeline(pipeline);
+        return limited ? result.slice(0, -1) : result;
     }
 
     /**
      * Uses IORedis.Pipeline to batch multiple redis commands
+     * 
+     * Note: this method alone will not honor `limitTopN`
      * 
      * @see update  
      * @param entries list of entries to update
@@ -218,10 +234,6 @@ export class Leaderboard {
 
         for (let entry of entries)
             fn(this.options.redisKey, entry.value, entry.id);
-    }
-
-    private postInsert(pipeline: Pipeline) {
-        // TODO: check top N
     }
 
     /**

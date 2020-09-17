@@ -333,4 +333,33 @@ describe('Leaderboard', () => {
             });
         });
     });
+    
+    describe('keep top N', () => {
+        describe.each([
+            'high-to-low',
+            'low-to-high'
+        ])('%s', (sortPolicy) => {
+            beforeEach(async () => {
+                lb = new Leaderboard(rc, {
+                    redisKey: TEST_KEY,
+                    sortPolicy: sortPolicy as SortPolicy,
+                    updatePolicy: 'replace',
+                    limitTopN: 3
+                });
+                for(let k = 0; k < 10; k++) { // repeat a few times
+                    for(let i = 0; i < 10; i++) {
+                        await lb.updateOne(`n${i}`, (sortPolicy === 'high-to-low' ? -1 : 1) * 10 * (i + 1));
+                    }
+                }
+            });
+
+            test('top 3', async () => {
+                let r = await lb.top(20);
+                expect(r.length).toBe(3);
+                let id = 0;
+                for(let e of r)
+                    expect(e.id).toBe(`n${id++}`);
+            });
+        })
+    });
 });
