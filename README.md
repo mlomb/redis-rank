@@ -22,7 +22,7 @@
 * **Lightweight**: minimal dependencies, only [ioredis](https://github.com/luin/ioredis) is required
 * **Performance**: guaranteed _at most_ one trip to Redis on each function call, taking advantage of [ioredis's pipelining](https://github.com/luin/ioredis#pipelining) and [Lua scripts](https://redis.io/commands/eval)
 * **Drop-in replacement**: use any existing sorted set
-* **Clear interface**: based on promises and provides [TypeScript](https://www.typescriptlang.org) definitions
+* **Clear interface**: based on [promises](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise) and provides [TypeScript](https://www.typescriptlang.org) definitions
 * **Periodic leaderboards**: create recurring leaderboards (_daily_, _weekly_, _monthly_, _etc_)
 * **Combine leaderboards**: create a matrix of leaderboards, query one and retrieve multiple, all in a single call
 * **Export**: export your leaderboards for long-term storage
@@ -62,8 +62,7 @@ See [here](https://github.com/luin/ioredis#connect-to-redis) for more informatio
 let client = new Redis(); // see ioredis
 
 // create a leaderboard
-let lb = new Leaderboard(client, {
-  redisKey: 'lb:test',
+let lb = new Leaderboard(client, 'lb:test', {
   sortPolicy: 'high-to-low',
   updatePolicy: 'replace'
 });
@@ -80,8 +79,7 @@ The detailed API documentation can be found in [API.md](API.md).
 
 ```javascript
 // create
-let lb = new Leaderboard(client, {
-  redisKey: 'lb:test',
+let lb = new Leaderboard(client, 'lb:my-leaderboard', {
   sortPolicy: 'high-to-low', // or 'low-to-high'
   updatePolicy: 'replace' // or 'aggregate' or 'best'
   // limitTopN: 1000 // only keep top N entries
@@ -110,7 +108,7 @@ await lb.at(3); /// === { id: "player-1", score: 123, rank: 3 }
 // query
 await lb.top(10); /// === [{ id: "n1", score: 999, rank: 1 }, ... 9 more]
 await lb.bottom(10); /// === [{ id: "n10", score: 111, rank: 10 }, ... 9 more]
-await lb.list(100, 200); /// === [{ id: "n100", score: 100, rank: 100 }, ... 99 more]
+await lb.list(100, 200); /// === [{ id: "n100", score: 100, rank: 100 }, ... 100 more]
 await lb.around("player-1", 4); /// === [... 4 more, { id: "player-1", score: 100, rank: 5 }, ... 4 more]
 
 // misc

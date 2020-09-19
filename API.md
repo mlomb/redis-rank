@@ -35,8 +35,8 @@ Plain and simple leaderboard. Ranks are 1-based.
 #### Arguments
 
 * `client`: [Redis](https://github.com/luin/ioredis#connect-to-redis) connection object
+* `key`: [KeyType](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) Redis key for the sorted set (usually a string)
 * `options`: [LeaderboardOptions]() configuration
-  * `redisKey`: [KeyType](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) Redis key for the sorted set (usually a string)
   * `sortPolicy`: [SortPolicy]() determines which scores are better than others  
     Allowed values:
     * `'high-to-low'`: sort scores in descending order
@@ -53,8 +53,7 @@ Plain and simple leaderboard. Ranks are 1-based.
 #### Example
 
 ```javascript
-let lb = new Leaderboard(client, {
-  redisKey: 'lb:my-leaderboard',
+let lb = new Leaderboard(client, 'lb:my-leaderboard', {
   sortPolicy: 'high-to-low',
   updatePolicy: 'replace'
   // limitTopN: 1000 (commented, no limit)

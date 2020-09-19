@@ -29,8 +29,7 @@ describe('Leaderboard', () => {
 
     describe('count', () => {
         beforeEach(() => {
-            lb = new Leaderboard(rc, {
-                redisKey: TEST_KEY,
+            lb = new Leaderboard(rc, TEST_KEY, {
                 sortPolicy: 'high-to-low', // not relevant
                 updatePolicy: 'best', // not relevant
             });
@@ -48,8 +47,7 @@ describe('Leaderboard', () => {
     
     describe('remove', () => {
         beforeEach(() => {
-            lb = new Leaderboard(rc, {
-                redisKey: TEST_KEY,
+            lb = new Leaderboard(rc, TEST_KEY, {
                 sortPolicy: 'high-to-low', // not relevant
                 updatePolicy: 'best', // not relevant
             });
@@ -86,8 +84,7 @@ describe('Leaderboard', () => {
             ['low-to-high', 1, 2, 3]
         ])('%s', (sortPolicy, fooRank, barRank, bazRank) => {
             beforeEach(async () => {
-                lb = new Leaderboard(rc, {
-                    redisKey: TEST_KEY,
+                lb = new Leaderboard(rc, TEST_KEY, {
                     sortPolicy: sortPolicy as SortPolicy,
                     updatePolicy: 'best', // not relevant
                 });
@@ -162,8 +159,7 @@ describe('Leaderboard', () => {
             ['low-to-high', 'replace',   false, (a: Score, b: Score): Score => b]
         ])('%s / %s', (sortPolicy, updatePolicy, shouldReturnFinalScore, expectedBehaviour) => {
             beforeEach(() => {
-                lb = new Leaderboard(rc, {
-                    redisKey: TEST_KEY,
+                lb = new Leaderboard(rc, TEST_KEY, {
                     sortPolicy: sortPolicy as SortPolicy,
                     updatePolicy: updatePolicy as UpdatePolicy,
                 });
@@ -340,8 +336,7 @@ describe('Leaderboard', () => {
             'low-to-high'
         ])('%s', (sortPolicy) => {
             beforeEach(async () => {
-                lb = new Leaderboard(rc, {
-                    redisKey: TEST_KEY,
+                lb = new Leaderboard(rc, TEST_KEY, {
                     sortPolicy: sortPolicy as SortPolicy,
                     updatePolicy: 'replace',
                     limitTopN: 3

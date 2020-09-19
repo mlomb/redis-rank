@@ -28,11 +28,6 @@ export type UpdatePolicy = 'replace' | 'aggregate' | 'best';
 
 export type LeaderboardOptions = {
     /**
-     * Redis key for the sorted set.
-     * You can use any sorted set, not only the ones created by redis-rank
-     */
-    redisKey: KeyType,
-    /**
      * Sort policy for this leaderboard
      * @see SortPolicy
      */
@@ -68,6 +63,7 @@ export type EntryUpdateQuery = {
 export class Leaderboard {
 
     private readonly client: Redis;
+    private readonly key: KeyType;
     private readonly options: LeaderboardOptions;
 
     /**
@@ -77,10 +73,12 @@ export class Leaderboard {
      * (aka lazy)
      * 
      * @param client ioredis client
+     * @param key Redis key for the sorted set. You can use any sorted set, not only the ones created by redis-rank
      * @param options leaderboard options
      */
-    constructor(client: Redis, options: LeaderboardOptions) {
+    constructor(client: Redis, key: KeyType, options: LeaderboardOptions) {
         this.client = client;
+        this.key = key;
         this.options = options;
 
         extendRedisClient(this.client);
@@ -94,7 +92,7 @@ export class Leaderboard {
      * @param id entry id
      */
     async score(id: ID): Promise<Score | null> {
-        let score = await this.client.zscore(this.options.redisKey, id);
+        let score = await this.client.zscore(this.key, id);
         return score === null ? null : parseFloat(score);
     }
 
@@ -108,8 +106,8 @@ export class Leaderboard {
      */
     async rank(id: ID): Promise<Rank | null> {
         let rank = await (this.options.sortPolicy === 'high-to-low' ?
-            this.client.zrevrank(this.options.redisKey, id) :
-            this.client.zrank(this.options.redisKey, id));
+            this.client.zrevrank(this.key, id) :
+            this.client.zrank(this.key, id));
         return rank === null ? null : (rank + 1);
     }
 
@@ -124,9 +122,9 @@ export class Leaderboard {
     async find(id: ID): Promise<Entry | null> {
         let result = await (this.options.sortPolicy === 'high-to-low' ?
             // @ts-ignore
-            this.client.zrevfind(this.options.redisKey, id) :
+            this.client.zrevfind(this.key, id) :
             // @ts-ignore
-            this.client.zfind(this.options.redisKey, id));
+            this.client.zfind(this.key, id));
 
         return (result[0] === false || result[1] === false || result[0] === null || result[1] === null) ? null : {
             id: id,
@@ -197,10 +195,10 @@ export class Leaderboard {
         if(limited) {
             if(this.options.sortPolicy === 'high-to-low')
                 // @ts-ignore
-                pipeline.zrevkeeptop(this.options.redisKey, this.options.limitTopN);
+                pipeline.zrevkeeptop(this.key, this.options.limitTopN);
             else
                 // @ts-ignore
-                pipeline.zkeeptop(this.options.redisKey, this.options.limitTopN)
+                pipeline.zkeeptop(this.key, this.options.limitTopN)
         }
 
         let result = await Leaderboard.execPipeline(pipeline);
@@ -233,7 +231,7 @@ export class Leaderboard {
         }
 
         for (let entry of entries)
-            fn(this.options.redisKey, entry.value, entry.id);
+            fn(this.key, entry.value, entry.id);
     }
 
     /**
@@ -243,7 +241,7 @@ export class Leaderboard {
      * leaderboard and M the number of entries to be removed
      */
     async remove(ids: ID | ID[]): Promise<void> {
-        await this.client.zrem(this.options.redisKey, ids);
+        await this.client.zrem(this.key, ids);
     }
     
     /**
@@ -254,7 +252,7 @@ export class Leaderboard {
      * Complexity: `O(N)` where N is the number of entries in the leaderboard
      */
     async clear(): Promise<void> {
-        await this.client.del(this.options.redisKey);
+        await this.client.del(this.key);
     }
 
     /**
@@ -270,7 +268,7 @@ export class Leaderboard {
         if(low < 1 || high < 1) throw new Error("Out of bounds (<1)");
         if(low > high) throw new Error(`high must be greater than low (${low} <= ${high})`);
 
-        let result = await this.client[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](this.options.redisKey, low-1, high-1, 'WITHSCORES');
+        let result = await this.client[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](this.key, low-1, high-1, 'WITHSCORES');
         let entries: Entry[] = [];
 
         let rank = low;
@@ -312,7 +310,7 @@ export class Leaderboard {
 
         let pipeline = this.client.pipeline();
         pipeline.zcard(this.redisKey);
-        pipeline[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](this.options.redisKey, -max, -1, 'WITHSCORES');
+        pipeline[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](this.key, -max, -1, 'WITHSCORES');
         let results = await Leaderboard.execPipeline(pipeline);
         
         let entries: Entry[] = [];
@@ -360,7 +358,7 @@ export class Leaderboard {
 
         //@ts-ignore
         let result = await this.client[this.options.sortPolicy === 'high-to-low' ? 'zrevaround' : 'zaround'](
-            this.options.redisKey,
+            this.key,
             id,
             distance,
             (fillBorders === true).toString()
@@ -385,7 +383,7 @@ export class Leaderboard {
      * Complexity: `O(1)`
      */
     count(): Promise<number> {
-        return this.client.zcard(this.options.redisKey);
+        return this.client.zcard(this.key);
     }
 
     public get redisClient(): Redis {
@@ -393,7 +391,7 @@ export class Leaderboard {
     }
 
     public get redisKey(): KeyType {
-        return this.options.redisKey;
+        return this.key;
     }
 
     public get sortPolicy(): SortPolicy {
