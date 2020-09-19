@@ -38,14 +38,25 @@ export type PeriodicLeaderboardOptions = {
     cycle: PeriodicLeaderboardCycle
 }
 
+/**
+ * Get the week number since January 1st, 1970
+ * 
+ * 259200000 = 3 days in milliseconds
+ * 604800000 = 1 week in milliseconds
+ * 
+ * Note: we add 3 days because January 1st, 1970 was thursday (and weeks start
+ * on sunday)
+ */
+const getWeekNumber = (time: Date) => Math.floor((time.getTime() + 259200000) / 604800000);
+
 const CYLCE_FUNCTIONS: { [cycle in DefaultCycles]: CycleFunction } = {
-    'minute': (time: Date) => "a",
-    'hourly': (time: Date) => "a",
-    'daily': (time: Date) => "a",
-    'weekly': (time: Date) => "a",
-    'monthly': (time: Date) => "a",
-    'yearly': (time: Date) => "a",
-    'all-time': (time: Date) => "a",
+    'all-time': (time: Date) => "all-time",
+    'yearly':   (time: Date) => `y${time.getFullYear()}`,
+    'weekly':   (time: Date) => `y${time.getFullYear()}-w${getWeekNumber(time)}`,
+    'monthly':  (time: Date) => `y${time.getFullYear()}-m${time.getMonth()}`,
+    'daily':    (time: Date) => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}`,
+    'hourly':   (time: Date) => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}-h${time.getHours()}`,
+    'minute':   (time: Date) => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}-h${time.getHours()}-m${time.getMinutes()}`,
 };
 
 export class PeriodicLeaderboard {
