@@ -108,6 +108,15 @@ export class PeriodicLeaderboard {
     }
 
     /**
+     * Get the leaderboard at the specified date and time
+     * 
+     * @param time the time
+     */
+    getLeaderboardAt(time: Date): Leaderboard {
+        return this.getLeaderboard(this.getKey(time));
+    }
+
+    /**
      * Get the periodic key that should be used based on the current date and
      * time
      */

@@ -62,27 +62,23 @@ describe('PeriodicLeaderboard', () => {
         });
     });
 
-    describe.each([
+    test.each([
         ['5 minutes', 60 * 5, (time: Date): PeriodicKey => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}-h${time.getHours()}-5m${Math.floor(time.getMinutes() / 5)}`],
         ['3 hours', 60 * 60 * 3, (time: Date): PeriodicKey => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}-h${Math.floor(time.getHours() / 3)}`]
-    ])('custom cylce %s', (_, windowSecs, cycle: CycleFunction) => { // windowSecs is exact
-        beforeEach(() => {
-            plb = new PeriodicLeaderboard(rc, {
-                baseKey: TEST_KEY,
-                leaderboardOptions: lbOptions,
-                cycle: cycle
-            });
+    ])('custom cylce %s periodic key', (_, windowSecs, cycle: CycleFunction) => { // windowSecs is exact
+        plb = new PeriodicLeaderboard(rc, {
+            baseKey: TEST_KEY,
+            leaderboardOptions: lbOptions,
+            cycle: cycle
         });
 
-        test('expected periodic key', () => {
-            let time = new Date(REFERENCE_DATE);
-            let lastKey: PeriodicKey = plb.getKey(time);
-            for(let i = 0; i < 5000; i++) {
-                time.setSeconds(time.getSeconds() + windowSecs);
-                expect(lastKey).not.toBe(plb.getKey(time));
-                lastKey = plb.getKey(time);
-            }
-        });
+        let time = new Date(REFERENCE_DATE);
+        let lastKey: PeriodicKey = plb.getKey(time);
+        for(let i = 0; i < 5000; i++) {
+            time.setSeconds(time.getSeconds() + windowSecs);
+            expect(lastKey).not.toBe(plb.getKey(time));
+            lastKey = plb.getKey(time);
+        }
     });
     
     test.each([
@@ -92,7 +88,7 @@ describe('PeriodicLeaderboard', () => {
         ['weekly',  new Date(2020,  0,  4, 23, 59, 59) ],
         ['monthly', new Date(2020,  0, 31, 23, 59, 59) ],
         ['yearly',  new Date(2020, 11, 31, 23, 59, 59) ]
-    ])('check default cut point %s', (cycle, time) => {
+    ])('check expect cut point %s', (cycle, time) => {
         plb = new PeriodicLeaderboard(rc, {
             baseKey: TEST_KEY,
             leaderboardOptions: lbOptions,
@@ -115,5 +111,60 @@ describe('PeriodicLeaderboard', () => {
             time.setSeconds(time.getSeconds() + 99999999);
             expect(plb.getKey(time)).toBe("all-time");
         }
+    });
+    
+    test('current time & leaderboard', () => {
+        plb = new PeriodicLeaderboard(rc, {
+            baseKey: TEST_KEY,
+            leaderboardOptions: lbOptions,
+            cycle: 'minute'
+        });
+        expect(plb.getCurrentLeaderboard().redisKey).toBe(`${TEST_KEY}:${plb.getKey(new Date())}`);
+    });
+    
+    test('custom now', () => {
+        plb = new PeriodicLeaderboard(rc, {
+            baseKey: TEST_KEY,
+            leaderboardOptions: lbOptions,
+            cycle: 'minute',
+            now: () => REFERENCE_DATE
+        });
+        expect(plb.getCurrentKey()).toBe(`y${REFERENCE_DATE.getFullYear()}-m${REFERENCE_DATE.getMonth()}-d${REFERENCE_DATE.getDate()}-h${REFERENCE_DATE.getHours()}-m${REFERENCE_DATE.getMinutes()}`);
+    });
+
+    describe('cache leaderboard objects', () => {
+        beforeEach(() => {
+            plb = new PeriodicLeaderboard(rc, {
+                baseKey: TEST_KEY,
+                leaderboardOptions: lbOptions,
+                cycle: 'minute'
+            });
+        });
+
+        test('get same leaderboard', () => {
+            plb = new PeriodicLeaderboard(rc, {
+                baseKey: TEST_KEY,
+                leaderboardOptions: lbOptions,
+                cycle: 'minute'
+            });
+            expect(plb.getLeaderboardAt(REFERENCE_DATE)).toBe(plb.getLeaderboardAt(REFERENCE_DATE));
+        });
+
+        test('avoid leaking', () => {
+            plb = new PeriodicLeaderboard(rc, {
+                baseKey: TEST_KEY,
+                leaderboardOptions: lbOptions,
+                cycle: 'minute'
+            });
+            let time = new Date(REFERENCE_DATE);
+            for(let i = 0; i < 1000; i++) {
+                time.setSeconds(time.getSeconds() + 999999);
+                plb.getLeaderboardAt(time); // store in cache
+            }
+
+            let plbAny: any = plb;
+            expect(plbAny.leaderboards.size).toBeGreaterThan(10); // some
+            expect(plbAny.leaderboards.size).toBeLessThan(101); // but not much
+        });
     });
 });
