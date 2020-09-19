@@ -28,7 +28,7 @@ export type PeriodicLeaderboardCycle = CycleFunction | DefaultCycles;
 
 export type PeriodicLeaderboardOptions = {
     /** base key to store the leaderboards */
-    path: string,
+    baseKey: string,
     /** underlying leaderboard options  */
     leaderboardOptions: LeaderboardOptions,
 
@@ -60,16 +60,58 @@ const CYLCE_FUNCTIONS: { [cycle in DefaultCycles]: CycleFunction } = {
 };
 
 export class PeriodicLeaderboard {
-    /** ioredis client */
+
     private client: Redis;
-    /** options */
     private options: PeriodicLeaderboardOptions;
-    /** active leaderboard */
-    private leaderboard: (Leaderboard | null) = null;
+    private leaderboards: Map<string, Leaderboard>;
 
     constructor(client: Redis, options: PeriodicLeaderboardOptions) {
         this.client = client;
         this.options = options;
+        this.leaderboards = new Map();
+    }
+
+    /**
+     * Get the periodic key at a specified date and time
+     * 
+     * @param time the time
+     */
+    getKey(time: Date): PeriodicKey {
+        return (CYLCE_FUNCTIONS[this.options.cycle as DefaultCycles] || this.options.cycle)(time);
+    }
+
+    /**
+     * Get the leaderboard for the provided periodic key
+     * 
+     * @param key periodic key
+     */
+    getLeaderboard(key: PeriodicKey): Leaderboard {
+        let finalKey = `${this.options.baseKey}:${key}`;
+        let lb = this.leaderboards.get(finalKey);
+        if(lb) return lb; // hit cache
+
+        // Note: avoid leaking leaderboards
+        if(this.leaderboards.size > 100)
+            this.leaderboards.clear();
+
+        lb = new Leaderboard(this.client, finalKey, this.options.leaderboardOptions);
+        this.leaderboards.set(finalKey, lb);
+        return lb;
+    }
+
+    /**
+     * Get the periodic key that should be used based on the current date and
+     * time
+     */
+    getCurrentKey(): PeriodicKey {
+        return this.getKey(this.options.now ? this.options.now() : new Date());
+    }
+
+    /**
+     * Get the current leaderboard based on the current date and time
+     */
+    getCurrentLeaderboard(): Leaderboard {
+        return this.getLeaderboard(this.getCurrentKey());
     }
 
 }
