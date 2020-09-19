@@ -4,7 +4,7 @@ import { Leaderboard, LeaderboardOptions } from './Leaderboard';
 /** uniquely identifies a cylce in a periodic leaderboard  */
 export type PeriodicKey = string;
 
-type DefaultCycles =
+export type DefaultCycles =
     'minute' |
     'hourly' |
     'daily' |
@@ -13,7 +13,7 @@ type DefaultCycles =
     'yearly' |
     'all-time';
 
-type CycleFunction = (time: Date) => PeriodicKey;
+export type CycleFunction = (time: Date) => PeriodicKey;
 
 /**
  * The cycle of a periodic leaderboard.  
@@ -38,19 +38,27 @@ export type PeriodicLeaderboardOptions = {
     cycle: PeriodicLeaderboardCycle
 }
 
+const msTimezoneOffset = new Date().getTimezoneOffset() * 60 * 1000;
+
 /**
  * Get the week number since January 1st, 1970
  * 
- * 259200000 = 3 days in milliseconds
+ * 345600000 = 4 days in milliseconds
  * 604800000 = 1 week in milliseconds
  * 
- * Note: we add 3 days because January 1st, 1970 was thursday (and weeks start
- * on sunday)
+ * Note: we add 4 days because January 1st, 1970 was thursday (and weeks start
+ * on sunday). I think it should be 3 days a not 4, but 3 resutls in
+ * incorrect values. ¯\_(ツ)_/¯
  */
-const getWeekNumber = (time: Date) => Math.floor((time.getTime() + 259200000) / 604800000);
+const getWeekNumber = (time: Date) => Math.floor((time.getTime() + 345600000 - msTimezoneOffset) / 604800000);
 
+/**
+ * Note: default functions use local time to determine keys.  
+ * Tip: You can specify a `now` function in the periodic leaderboard options
+ * to offset the time however you like.
+ */
 const CYLCE_FUNCTIONS: { [cycle in DefaultCycles]: CycleFunction } = {
-    'all-time': (time: Date) => "all-time",
+    'all-time': (_time: Date) => "all-time",
     'yearly':   (time: Date) => `y${time.getFullYear()}`,
     'weekly':   (time: Date) => `y${time.getFullYear()}-w${getWeekNumber(time)}`,
     'monthly':  (time: Date) => `y${time.getFullYear()}-m${time.getMonth()}`,
