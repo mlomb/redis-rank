@@ -3,6 +3,7 @@
 [![Build Status](https://travis-ci.org/mlomb/redis-rank.svg?branch=master)](https://travis-ci.org/mlomb/redis-rank)
 [![codecov](https://codecov.io/gh/mlomb/redis-rank/branch/master/graph/badge.svg)](https://codecov.io/gh/mlomb/redis-rank)
 [![npm](https://img.shields.io/npm/v/redis-rank)](https://www.npmjs.com/package/redis-rank)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fmlomb%2Fredis-rank.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fmlomb%2Fredis-rank?ref=badge_shield)
 
 Back-end to generate and manage leaderboards using [Redis](https://redis.io/). Written in [TypeScript](https://www.typescriptlang.org/) and [Promise-based](https://developer.mozilla.org/es/docs/Web/JavaScript/Referencia/Objetos_globales/Promise).
 
@@ -293,3 +294,6 @@ I tried with [ioredis-mock](https://www.npmjs.com/package/ioredis-mock) but it h
 # License
 
 MIT. See [LICENSE](LICENSE).
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fmlomb%2Fredis-rank.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fmlomb%2Fredis-rank?ref=badge_large)
