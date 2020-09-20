@@ -1,5 +1,5 @@
-import { Redis, Pipeline } from 'ioredis';
-import { Leaderboard, LeaderboardOptions, ID, Rank, Score, EntryUpdateQuery } from './Leaderboard';
+import { Redis, KeyType, Pipeline } from 'ioredis';
+import { Leaderboard, LeaderboardOptions, ID, Rank, Score, SortPolicy } from './Leaderboard';
 import { PeriodicLeaderboard, PeriodicLeaderboardCycle, NowFunction } from './PeriodicLeaderboard';
 
 export type DimensionName = string;
@@ -36,7 +36,7 @@ export type MatrixEntry = {
 
 export type MatrixEntryUpdateQuery = {
     id: ID,
-    scores: { [ feature: string ]: Score }
+    values: { [ feature: string ]: number | Score }
 }
 
 export class LeaderboardMatrix {
@@ -103,12 +103,12 @@ export class LeaderboardMatrix {
         let pipeline: Pipeline = this.client.pipeline();
 
         for(let dim of dimensions) {
-            for(let feat in this.options.features) {
+            for(let feat of this.options.features) {
                 let updates = entries
-                    .map(e => ({ id: e.id, value: e.scores[feat] }))
+                    .map(e => ({ id: e.id, value: e.values[feat.name] }))
                     .filter(e => e.value !== undefined);
                 if(updates.length) {
-                    let lb = this.getLeaderboard(dim, feat);
+                    let lb = this.getLeaderboard(dim, feat.name);
                     if(lb) {
                         lb.updatePipe(updates, pipeline);
                         lb.limitPipe(pipeline);
@@ -117,6 +117,45 @@ export class LeaderboardMatrix {
             }
         }
 
-        await pipeline.exec();
+        await Leaderboard.execPipeline(pipeline);
+    }
+
+    async list(dimension: DimensionName, featureToSort: FeatureName, low: number, high: number): Promise<MatrixEntry[]> {
+        let featureSortKey: KeyType | undefined;
+        let featureSortPolicy: SortPolicy;
+        let featureKeys: KeyType[] = []; // all features to retrieve
+
+        for(let feat of this.options.features) {
+            let lb = this.getLeaderboard(dimension, feat.name);
+
+            // Note: we throw in this assertion instead of continue
+            // to ensure featureKeys match the order of this.options.features
+            if(!lb) throw new Error("Assertion: Leaderboard should exist");
+            
+            if(feat.name === featureToSort) {
+                featureSortKey = lb.redisKey;
+                featureSortPolicy = lb.sortPolicy;
+            }
+            
+            featureKeys.push(lb.redisKey);
+        }
+
+        if(!featureSortKey)
+            return [];
+
+        // @ts-ignore
+        let result = (featureSortPolicy === 'low-to-high' ? this.client.zmultirange : this.client.zrevmultirange)(
+            featureKeys.length + 1,
+            featureSortKey,
+            ...featureKeys,
+
+            featureKeys.length,
+            low - 1,
+            high - 1
+        );
+
+        console.log(result);
+
+        return [];
     }
 }

@@ -102,7 +102,7 @@ describe('PeriodicLeaderboard', () => {
             leaderboardOptions: lbOptions,
             cycle: 'minute'
         });
-        expect(plb.getCurrentLeaderboard().redisKey).toBe(`${TEST_KEY}:${plb.getKey(new Date())}`);
+        expect(plb.getLeaderboardNow().redisKey).toBe(`${TEST_KEY}:${plb.getKey(new Date())}`);
     });
     
     test('custom now', () => {
@@ -111,7 +111,7 @@ describe('PeriodicLeaderboard', () => {
             cycle: 'minute',
             now: () => REFERENCE_DATE
         });
-        expect(plb.getCurrentKey()).toBe(`y${REFERENCE_DATE.getFullYear()}-m${REFERENCE_DATE.getMonth()}-d${REFERENCE_DATE.getDate()}-h${REFERENCE_DATE.getHours()}-m${REFERENCE_DATE.getMinutes()}`);
+        expect(plb.getKeyNow()).toBe(`y${REFERENCE_DATE.getFullYear()}-m${REFERENCE_DATE.getMonth()}-d${REFERENCE_DATE.getDate()}-h${REFERENCE_DATE.getHours()}-m${REFERENCE_DATE.getMinutes()}`);
     });
 
     describe('cache leaderboard objects', () => {

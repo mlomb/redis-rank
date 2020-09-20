@@ -97,6 +97,10 @@ if dif > 0 then
 end
 `;
 
+const zmultirange = (dir: SortDirection) => `
+
+`;
+
 /**
  * Defines multiple commands useful to manage leaderboards:
  * * `zbest` & `zrevbest`: replace the score of the specified member if it
@@ -123,6 +127,8 @@ export function extendRedisClient(client: Redis) {
     client.defineCommand("zrevaround",  { numberOfKeys: 1, lua: zaround('desc') });
     client.defineCommand("zkeeptop",    { numberOfKeys: 1, lua: zkeeptop('asc')  });
     client.defineCommand("zrevkeeptop", { numberOfKeys: 1, lua: zkeeptop('desc') });
+    client.defineCommand("zmultirange",    { lua: zmultirange('asc') });
+    client.defineCommand("zrevmultirange", { lua: zmultirange('desc') });
 
     (client as any).redisRankExtended = true;
 }
