@@ -1,6 +1,6 @@
 import { Redis } from 'ioredis';
 import { Leaderboard, LeaderboardOptions } from './Leaderboard';
-import { NowFunction, PeriodicLeaderboardCycle } from './PeriodicLeaderboard';
+import { PeriodicLeaderboard, PeriodicLeaderboardCycle, NowFunction } from './PeriodicLeaderboard';
 
 export type DimensionDefinition = {
     name: string;
@@ -9,7 +9,7 @@ export type DimensionDefinition = {
 
 export type FeatureDefinition = {
     name: string;
-    options?: LeaderboardOptions;
+    options: LeaderboardOptions;
 }
 
 export type LeaderboardMatrixOptions = {
@@ -27,6 +27,7 @@ export class LeaderboardMatrix {
     private readonly client: Redis;
     private readonly baseKey: string;
     private readonly options: LeaderboardMatrixOptions;
+    private readonly matrix: { [key: string]: (Leaderboard | PeriodicLeaderboard) };
 
     /**
      * 
@@ -38,5 +39,15 @@ export class LeaderboardMatrix {
         this.client = client;
         this.baseKey = baseKey;
         this.options = options;
+
+        this.matrix = { };
+        for(let dim of options.dimensions) {
+            for(let feat of options.features) {
+                let key = `${dim.name}:${feat.name}`;
+                let redisKey = `${baseKey}:${key}`
+                this.matrix[key] = new Leaderboard(client, redisKey, feat.options);
+            }
+        }
     }
+
 }

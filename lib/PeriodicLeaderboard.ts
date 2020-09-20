@@ -75,6 +75,9 @@ export class PeriodicLeaderboard {
     private leaderboards: Map<string, Leaderboard>;
 
     /**
+     * Create a new periodic leaderboard
+     * 
+     * Use `getCurrentLeaderboard` to get the leaderboard of the current cycle
      * 
      * @param client ioredis client
      * @param baseKey prefix for all the leaderboards
@@ -104,7 +107,7 @@ export class PeriodicLeaderboard {
      */
     getLeaderboard(key: PeriodicKey): Leaderboard {
         let finalKey = `${this.baseKey}:${key}`;
-        
+
         let lb = this.leaderboards.get(finalKey);
         if(lb) return lb; // hit cache
 
