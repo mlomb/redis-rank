@@ -111,6 +111,10 @@ end
  * @param client the client to define the commands
  */
 export function extendRedisClient(client: Redis) {
+    // avoid defining the commands over and over again
+    if((client as any).redisRankExtended)
+        return;
+
     client.defineCommand("zbest",       { numberOfKeys: 1, lua: zbest('asc')    });
     client.defineCommand("zrevbest",    { numberOfKeys: 1, lua: zbest('desc')   });
     client.defineCommand("zfind",       { numberOfKeys: 1, lua: zfind('asc')    });
@@ -119,4 +123,6 @@ export function extendRedisClient(client: Redis) {
     client.defineCommand("zrevaround",  { numberOfKeys: 1, lua: zaround('desc') });
     client.defineCommand("zkeeptop",    { numberOfKeys: 1, lua: zkeeptop('asc')  });
     client.defineCommand("zrevkeeptop", { numberOfKeys: 1, lua: zkeeptop('desc') });
+
+    (client as any).redisRankExtended = true;
 }
