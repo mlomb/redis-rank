@@ -43,5 +43,13 @@
   },
   "peerDependencies": {
     "ioredis": ">=4.x"
+  },
+  "jest": {
+    "roots": [
+      "<rootDir>/tests"
+    ],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    }
   }
 }
