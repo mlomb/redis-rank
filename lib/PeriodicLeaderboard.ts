@@ -131,4 +131,8 @@ export class PeriodicLeaderboard {
         return this.getLeaderboard(this.getCurrentKey());
     }
 
+    getExistingKeys(): PeriodicKey[] {
+        // TODO!
+        return [];
+    }
 }

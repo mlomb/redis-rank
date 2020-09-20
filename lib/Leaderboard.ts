@@ -378,6 +378,22 @@ export class Leaderboard {
     }
 
     /**
+     * Use ZSCAN
+     * O(1) for each call. O(N) for a complete iteration.
+     */
+    exportUnordered() {
+        
+    }
+
+    /**
+     * Use ZRANGE
+     * O(log(N)+M)
+     */
+    exportOrdered() {
+
+    }
+
+    /**
      * Retrieve the number of entries in the leaderboard
      * 
      * Complexity: `O(1)`

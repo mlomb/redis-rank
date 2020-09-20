@@ -23,7 +23,7 @@
 * **Performance**: guaranteed _at most_ one trip to Redis on each function call, taking advantage of [ioredis's pipelining](https://github.com/luin/ioredis#pipelining) and [Lua scripts](https://redis.io/commands/eval)
 * **Drop-in replacement**: use any existing sorted set
 * **Clear interface**: based on [promises](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise) and provides [TypeScript](https://www.typescriptlang.org) definitions
-* **Periodic leaderboards**: create recurring leaderboards (_daily_, _weekly_, _monthly_, _etc_)
+* **Periodic leaderboards**: create recurring leaderboards (_daily_, _weekly_, _monthly_, custom, etc)
 * **Combine leaderboards**: create a matrix of leaderboards, query one and retrieve multiple, all in a single call
 * **Export**: export your leaderboards for long-term storage
 * **Tested**: 100% code coverage
