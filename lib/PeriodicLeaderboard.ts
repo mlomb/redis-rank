@@ -1,18 +1,18 @@
 import { Redis } from 'ioredis';
 import { Leaderboard, LeaderboardOptions } from './Leaderboard';
 
-/** uniquely identifies a cylce in a periodic leaderboard  */
+/** uniquely identifies a cycle */
 export type PeriodicKey = string;
 
 export type DefaultCycles =
-    'minute' |
-    'hourly' |
-    'daily' |
-    'weekly' |
+    'minute'  |
+    'hourly'  |
+    'daily'   |
+    'weekly'  |
     'monthly' |
-    'yearly' |
-    'all-time';
+    'yearly';
 
+export type NowFunction = () => Date;
 export type CycleFunction = (time: Date) => PeriodicKey;
 
 /**
@@ -27,17 +27,18 @@ export type CycleFunction = (time: Date) => PeriodicKey;
 export type PeriodicLeaderboardCycle = CycleFunction | DefaultCycles;
 
 export type PeriodicLeaderboardOptions = {
-    /** base key to store the leaderboards */
-    baseKey: string,
     /** underlying leaderboard options  */
     leaderboardOptions: LeaderboardOptions,
-
     /** function to evaluate the current time */
-    now?: () => Date,
+    now?: NowFunction,
     /** cycle */
     cycle: PeriodicLeaderboardCycle
 }
 
+/**
+ * Used by `getWeekNumber`. Needed because Date.getTime returns the time in UTC
+ * and we use local time.
+ */
 const msTimezoneOffset = new Date().getTimezoneOffset() * 60 * 1000;
 
 /**
@@ -57,8 +58,7 @@ const getWeekNumber = (time: Date) => Math.floor((time.getTime() + 345600000 - m
  * Tip: You can specify a `now` function in the periodic leaderboard options
  * to offset the time however you like.
  */
-const CYLCE_FUNCTIONS: { [cycle in DefaultCycles]: CycleFunction } = {
-    'all-time': (_time: Date) => "all-time",
+const CYCLE_FUNCTIONS: { [cycle in DefaultCycles]: CycleFunction } = {
     'yearly':   (time: Date) => `y${time.getFullYear()}`,
     'weekly':   (time: Date) => `y${time.getFullYear()}-w${getWeekNumber(time)}`,
     'monthly':  (time: Date) => `y${time.getFullYear()}-m${time.getMonth()}`,
@@ -70,12 +70,21 @@ const CYLCE_FUNCTIONS: { [cycle in DefaultCycles]: CycleFunction } = {
 export class PeriodicLeaderboard {
 
     private client: Redis;
+    private baseKey: string;
     private options: PeriodicLeaderboardOptions;
     private leaderboards: Map<string, Leaderboard>;
 
-    constructor(client: Redis, options: PeriodicLeaderboardOptions) {
+    /**
+     * 
+     * @param client ioredis client
+     * @param baseKey prefix for all the leaderboards
+     * @param options periodic leaderboard options
+     */
+    constructor(client: Redis, baseKey: string, options: PeriodicLeaderboardOptions) {
         this.client = client;
+        this.baseKey = baseKey;
         this.options = options;
+
         this.leaderboards = new Map();
     }
 
@@ -85,7 +94,7 @@ export class PeriodicLeaderboard {
      * @param time the time
      */
     getKey(time: Date): PeriodicKey {
-        return (CYLCE_FUNCTIONS[this.options.cycle as DefaultCycles] || this.options.cycle)(time);
+        return (CYCLE_FUNCTIONS[this.options.cycle as DefaultCycles] || this.options.cycle)(time);
     }
 
     /**
@@ -94,7 +103,8 @@ export class PeriodicLeaderboard {
      * @param key periodic key
      */
     getLeaderboard(key: PeriodicKey): Leaderboard {
-        let finalKey = `${this.options.baseKey}:${key}`;
+        let finalKey = `${this.baseKey}:${key}`;
+        
         let lb = this.leaderboards.get(finalKey);
         if(lb) return lb; // hit cache
 
