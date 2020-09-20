@@ -190,8 +190,8 @@ export class Leaderboard {
         return (await this.execPipelineAndLimit(pipeline)).map(parseFloat);
     }
 
-    private async execPipelineAndLimit(pipeline: Pipeline) {
-        let limited = this.options.limitTopN && this.options.limitTopN > 0;
+    limitPipe(pipeline: Pipeline): boolean {
+        let limited = (this.options.limitTopN && this.options.limitTopN > 0) as boolean;
         if(limited) {
             if(this.options.sortPolicy === 'high-to-low')
                 // @ts-ignore
@@ -200,7 +200,11 @@ export class Leaderboard {
                 // @ts-ignore
                 pipeline.zkeeptop(this.key, this.options.limitTopN)
         }
+        return limited;
+    }
 
+    private async execPipelineAndLimit(pipeline: Pipeline) {
+        let limited = this.limitPipe(pipeline);
         let result = await Leaderboard.execPipeline(pipeline);
         return limited ? result.slice(0, -1) : result;
     }

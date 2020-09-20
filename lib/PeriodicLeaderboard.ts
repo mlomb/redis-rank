@@ -121,27 +121,28 @@ export class PeriodicLeaderboard {
     }
 
     /**
-     * Get the leaderboard at the specified date and time
+     * Get the leaderboard at the specified date and time. If `time` is not
+     * provided, it will use the time returned by `now()`.
      * 
      * @param time the time
      */
-    getLeaderboardAt(time: Date): Leaderboard {
-        return this.getLeaderboard(this.getKey(time));
+    getLeaderboardAt(time?: Date): Leaderboard {
+        return this.getLeaderboard(time ? this.getKey(time) : this.getKeyNow());
     }
 
     /**
-     * Get the periodic key that should be used based on the current date and
-     * time
+     * Get the periodic key that should be used based on the time returned
+     * by `now()`
      */
-    getCurrentKey(): PeriodicKey {
+    getKeyNow(): PeriodicKey {
         return this.getKey(this.options.now ? this.options.now() : new Date());
     }
 
     /**
-     * Get the current leaderboard based on the current date and time
+     * Get the current leaderboard based on the time returned by `now()`
      */
-    getCurrentLeaderboard(): Leaderboard {
-        return this.getLeaderboard(this.getCurrentKey());
+    getLeaderboardNow(): Leaderboard {
+        return this.getLeaderboard(this.getKeyNow());
     }
 
     getExistingKeys(): PeriodicKey[] {
