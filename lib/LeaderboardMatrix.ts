@@ -39,6 +39,15 @@ export type MatrixEntryUpdateQuery = {
     values: { [ feature: string ]: number | Score }
 }
 
+type QueryInfo = {
+    /** main feature key to do sorting */
+    featureSortKey: KeyType;
+    /** main feature sort policy */
+    featureSortPolicy: SortPolicy;
+    /** all features to retrive */
+    featureKeys: KeyType[];
+}
+
 export class LeaderboardMatrix {
 
     private readonly client: Redis;
@@ -121,9 +130,87 @@ export class LeaderboardMatrix {
     }
 
     async list(dimension: DimensionName, featureToSort: FeatureName, low: number, high: number): Promise<MatrixEntry[]> {
+        if(low < 1 || high < 1) throw new Error("Out of bounds (<1)");
+        if(low > high) throw new Error(`high must be greater than low (${low} <= ${high})`);
+
+        let queryInfo = this.getQueryInfo(dimension, featureToSort);
+        if(!queryInfo)
+            return [];
+
+        // @ts-ignore
+        let result = await (queryInfo.featureSortPolicy === 'low-to-high' ? this.client.zmultirange : this.client.zrevmultirange).bind(this.client)(
+            queryInfo.featureKeys.length + 1,
+            queryInfo.featureSortKey,
+            queryInfo.featureKeys,
+
+            low - 1,
+            high - 1,
+            queryInfo.featureKeys.length
+        );
+
+        return this.parseEntries(result, low);
+    }
+
+    /**
+     * Retrieve the top entries
+     * 
+     * @param max max number of entries to return
+     */
+    top(dimension: DimensionName, featureToSort: FeatureName, max: number = 10): Promise<MatrixEntry[]> {
+        return this.list(dimension, featureToSort, 1, max);
+    }
+
+    /**
+     * Retrieve the entries around an entry
+     * 
+     * @see Leaderboard.around for details
+     * @param dimension 
+     * @param featureToSort 
+     * @param id 
+     * @param distance number of entries at each side of the queried entry
+     * @param fillBorders include entries at the other side if the entry is too close to one of the borders.
+     */
+    async around(dimension: DimensionName, featureToSort: FeatureName, id: ID, distance: number, fillBorders: boolean = false) {
+        let queryInfo = this.getQueryInfo(dimension, featureToSort);
+        if(!queryInfo)
+            return [];
+
+        // @ts-ignore
+        let result = await (queryInfo.featureSortPolicy === 'low-to-high' ? this.client.zmultiaround : this.client.zrevmultiaround).bind(this.client)(
+            queryInfo.featureKeys.length + 1,
+            queryInfo.featureSortKey,
+            queryInfo.featureKeys,
+
+            id,
+            Math.max(distance, 0),
+            (fillBorders === true).toString(),
+            queryInfo.featureKeys.length
+        );
+
+        return this.parseEntries(result[1], parseInt(result[0]) + 1);
+    }
+
+    /**
+     * Parses the result of the Lua function 'retrieveEntries'
+     * 
+     * @param data result of retrieveEntries
+     * @param low rank of the first entry
+     */
+    private parseEntries(result: any, low: Rank): MatrixEntry[] {
+        return result[0].map((id: ID, index: number) => ({
+            id,
+            rank: low + index,
+            scores: this.options.features.reduce((scores: any, feature, f_i) => {
+                scores[feature.name] = parseFloat(result[1][f_i][index])
+                return scores;
+            }, {})
+        }));
+    }
+
+    private getQueryInfo(dimension: DimensionName, featureToSort: FeatureName): QueryInfo | null {
         let featureSortKey: KeyType | undefined;
-        let featureSortPolicy: SortPolicy;
-        let featureKeys: KeyType[] = []; // all features to retrieve
+        let featureSortPolicy: SortPolicy | undefined;
+        let featureKeys: KeyType[] = [];
 
         for(let feat of this.options.features) {
             let lb = this.getLeaderboard(dimension, feat.name);
@@ -140,22 +227,13 @@ export class LeaderboardMatrix {
             featureKeys.push(lb.redisKey);
         }
 
-        if(!featureSortKey)
-            return [];
+        if(!featureSortKey || !featureSortPolicy || featureKeys.length === 0)
+            return null;
 
-        // @ts-ignore
-        let result = (featureSortPolicy === 'low-to-high' ? this.client.zmultirange : this.client.zrevmultirange)(
-            featureKeys.length + 1,
+        return { // QueryInfo
             featureSortKey,
-            ...featureKeys,
-
-            featureKeys.length,
-            low - 1,
-            high - 1
-        );
-
-        console.log(result);
-
-        return [];
+            featureSortPolicy,
+            featureKeys
+        };
     }
 }

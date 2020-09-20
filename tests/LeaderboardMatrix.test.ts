@@ -70,6 +70,11 @@ describe('LeaderboardMatrix', () => {
         test("update all dimensions", async () => {
             await mlb.update(FOO_BAR_BAZ);
             // expect(mlb.) TODO
+
+            let r = await mlb.list("dim1", "feat1", 1, 100);
+            console.log("LIST",r);
+            let r2 = await mlb.around("dim1", "feat1", "foo", 2, false);
+            console.log("AROUND",r2);
         });
     });
 

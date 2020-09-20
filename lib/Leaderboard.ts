@@ -358,13 +358,11 @@ export class Leaderboard {
      * in the leaderboard)
      */
     async around(id: ID, distance: number, fillBorders: boolean = false): Promise<Entry[]> {
-        if(distance < 0) throw new Error("distance must be >= 0");
-
         //@ts-ignore
         let result = await this.client[this.options.sortPolicy === 'high-to-low' ? 'zrevaround' : 'zaround'](
             this.key,
             id,
-            distance,
+            Math.max(distance, 0),
             (fillBorders === true).toString()
         );
 

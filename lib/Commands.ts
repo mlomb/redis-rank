@@ -36,13 +36,24 @@ const zfind = (dir: SortDirection) => `
 
 /**
  * `KEYS[1]`: leaderboard key  
- * `ARGV[1]`: entry id  
- * `ARGV[2]`: distance  
- * `ARGV[3]`: fill_borders ('true' or 'false')
- * 
- * Returns [ lowest_rank, [[id, score], ...] ]
+ * `ARGV[1]`: top N  
  */
-const zaround = (dir: SortDirection) => `
+const zkeeptop = (dir: SortDirection) => `
+local c = redis.call('zcard', KEYS[1]);
+local n = tonumber(ARGV[1])
+local dif = c - n
+if dif > 0 then
+    ${dir === 'asc' ? `
+    -- low to high
+    redis.call('zremrangebyrank', KEYS[1], -1, - dif)
+    ` : `
+    -- high to low
+    redis.call('zremrangebyrank', KEYS[1], 0, dif - 1)
+    `}
+end
+`;
+
+const aroundRange = (dir: SortDirection) => `
 local function aroundRange(path, id, distance, fill_borders)
     local r = redis.call('z${dir === 'desc' ? 'rev' : ''}rank', path, id) -- entry rank
 
@@ -67,6 +78,18 @@ local function aroundRange(path, id, distance, fill_borders)
 
     return { l, h, c, r };
 end
+`;
+
+/**
+ * `KEYS[1]`: leaderboard key  
+ * `ARGV[1]`: entry id  
+ * `ARGV[2]`: distance  
+ * `ARGV[3]`: fill_borders ('true' or 'false')
+ * 
+ * Returns [ lowest_rank, [[id, score], ...] ]
+ */
+const zaround = (dir: SortDirection) => `
+${aroundRange(dir)}
 
 local range = aroundRange(KEYS[1], ARGV[1], ARGV[2], ARGV[3]);
 -- entry not found
@@ -78,27 +101,71 @@ return {
 }
 `;
 
-/**
- * `KEYS[1]`: leaderboard key  
- * `ARGV[1]`: top N  
- */
-const zkeeptop = (dir: SortDirection) => `
-local c = redis.call('zcard', KEYS[1]);
-local n = tonumber(ARGV[1])
-local dif = c - n
-if dif > 0 then
-    ${dir === 'asc' ? `
-    -- low to high
-    redis.call('zremrangebyrank', KEYS[1], -1, - dif)
-    ` : `
-    -- high to low
-    redis.call('zremrangebyrank', KEYS[1], 0, dif - 1)
-    `}
+const slice = `
+local function slice(array, start, finish)
+    local t = {}
+    for k = start, finish do
+        t[#t+1] = array[k]
+    end
+    return t
 end
 `;
 
-const zmultirange = (dir: SortDirection) => `
+const retrieveEntries = (dir: SortDirection) => `
+local function retrieveEntries(path, feature_keys, low, high)
+    local ids = redis.call('z${dir === 'desc' ? 'rev' : ''}range', path, low, high);
+    local features = {}
 
+    while #feature_keys > 0 do
+        local key = table.remove(feature_keys, 1)
+
+        local scores = {}
+        for n = 1, #ids, 1 do
+            table.insert(scores, redis.call('ZSCORE', key, ids[n]))
+        end
+        features[#features+1] = scores
+    end
+
+    -- [
+    --   ['foo', 'bar', 'baz'],
+    --   [ [1, 2, 3], [4, 5, 6] ]
+    -- ]
+    return { ids, features }
+end
+`;
+
+/**
+ * `KEYS[1]`: sorting leaderboard key  
+ * `KEYS[2+]`: all feature keys  
+ * `ARGV[1]`: low rank  
+ * `ARGV[2]`: high rank  
+ * `ARGV[3]`: number of feature keys
+ */
+const zmultirange = (dir: SortDirection) => `
+${slice}
+${retrieveEntries(dir)}
+return retrieveEntries(KEYS[1], slice(KEYS, 2, ARGV[3]+1), ARGV[1], ARGV[2])
+`;
+
+/**
+ * `KEYS[1]`: sorting leaderboard key  
+ * `KEYS[2+]`: all feature keys  
+ * `ARGV[1]`: entry id  
+ * `ARGV[2]`: distance  
+ * `ARGV[3]`: fill_borders ('true' or 'false')  
+ * `ARGV[4]`: number of feature keys
+ */
+const zmultiaround = (dir: SortDirection) => `
+${slice}
+${aroundRange(dir)}
+${retrieveEntries(dir)}
+
+local range = aroundRange(KEYS[1], ARGV[1], ARGV[2], ARGV[3]);
+if range[1] == -1 then return { {}, { {},{} } } end
+return {
+    range[1],
+    retrieveEntries(KEYS[1], slice(KEYS, 2, ARGV[4]+1), range[1], range[2])
+}
 `;
 
 /**
@@ -107,9 +174,9 @@ const zmultirange = (dir: SortDirection) => `
  * doesn't exist or the provided score is (**lower** / **higher**)
  * than the old one. Returns the updated score
  * * `zfind` & `zrevfind`: find the score and rank of a given member
+ * * `zkeeptop` & `zrevkeeptop`: removes all members that are not in the top N
  * * `zaround` & `zrevaround`: return the entries around an entry in a defined
  * distance with a fill border policy
- * * `zkeeptop` & `zrevkeeptop`: removes all members that are not in the top N
  * 
  * @see https://github.com/luin/ioredis#lua-scripting
  * @param client the client to define the commands
@@ -123,12 +190,14 @@ export function extendRedisClient(client: Redis) {
     client.defineCommand("zrevbest",    { numberOfKeys: 1, lua: zbest('desc')   });
     client.defineCommand("zfind",       { numberOfKeys: 1, lua: zfind('asc')    });
     client.defineCommand("zrevfind",    { numberOfKeys: 1, lua: zfind('desc')   });
-    client.defineCommand("zaround",     { numberOfKeys: 1, lua: zaround('asc')  });
-    client.defineCommand("zrevaround",  { numberOfKeys: 1, lua: zaround('desc') });
     client.defineCommand("zkeeptop",    { numberOfKeys: 1, lua: zkeeptop('asc')  });
     client.defineCommand("zrevkeeptop", { numberOfKeys: 1, lua: zkeeptop('desc') });
-    client.defineCommand("zmultirange",    { lua: zmultirange('asc') });
-    client.defineCommand("zrevmultirange", { lua: zmultirange('desc') });
+    client.defineCommand("zaround",     { numberOfKeys: 1, lua: zaround('asc')  });
+    client.defineCommand("zrevaround",  { numberOfKeys: 1, lua: zaround('desc') });
+    client.defineCommand("zmultirange",     { lua: zmultirange('asc') });
+    client.defineCommand("zrevmultirange",  { lua: zmultirange('desc') });
+    client.defineCommand("zmultiaround",    { lua: zmultiaround('asc') });
+    client.defineCommand("zrevmultiaround", { lua: zmultiaround('desc') });
 
     (client as any).redisRankExtended = true;
 }
