@@ -76,6 +76,7 @@ local function aroundRange(path, id, distance, fill_borders)
         h = math.min(c, r + distance)
     end
 
+    -- low bound, high bound, lb card, query rank
     return { l, h, c, r };
 end
 `;
@@ -112,7 +113,7 @@ end
 `;
 
 const retrieveEntries = (dir: SortDirection) => `
-local function retrieveEntries(path, feature_keys, low, high)
+local function retrieveEntries(path, feature_keys, sort_policies, low, high)
     local ids = redis.call('z${dir === 'desc' ? 'rev' : ''}range', path, low, high);
     local features = {}
 
@@ -121,7 +122,7 @@ local function retrieveEntries(path, feature_keys, low, high)
 
         local scores = {}
         for n = 1, #ids, 1 do
-            table.insert(scores, redis.call('ZSCORE', key, ids[n]))
+            table.insert(scores, redis.call('zscore', key, ids[n]))
         end
         features[#features+1] = scores
     end
@@ -134,12 +135,35 @@ local function retrieveEntries(path, feature_keys, low, high)
 end
 `;
 
+const zmultifind = `
+-- id: entry id
+-- keys: leaderboard keys
+-- sorts: sort policies for each leaderboard
+local function retriveEntry(id, keys, sorts)
+    local result = {}
+
+    result[#result+1] = id
+
+    for i = 1, #keys, 1 do
+        result[#result+1] = redis.call('zscore', keys[i], id)
+        result[#result+1] = redis.call('zrank', keys[i], id)
+    end
+
+    -- [ id, score, rank, score, rank, ...]
+    return result
+end
+
+return retriveEntry(ARGV[1], KEYS, ARGV[2])
+`;
+
 /**
  * `KEYS[1]`: sorting leaderboard key  
  * `KEYS[2+]`: all feature keys  
  * `ARGV[1]`: low rank  
  * `ARGV[2]`: high rank  
  * `ARGV[3]`: number of feature keys
+ * 
+ * Returns [ [id, id, id, ...], [score, score, score, ...] ]
  */
 const zmultirange = (dir: SortDirection) => `
 ${slice}
@@ -154,6 +178,8 @@ return retrieveEntries(KEYS[1], slice(KEYS, 2, ARGV[3]+1), ARGV[1], ARGV[2])
  * `ARGV[2]`: distance  
  * `ARGV[3]`: fill_borders ('true' or 'false')  
  * `ARGV[4]`: number of feature keys
+ * 
+ * Returns [ [id, id, id, ...], [score, score, score, ...] ]
  */
 const zmultiaround = (dir: SortDirection) => `
 ${slice}
@@ -198,6 +224,8 @@ export function extendRedisClient(client: Redis) {
     client.defineCommand("zrevmultirange",  { lua: zmultirange('desc') });
     client.defineCommand("zmultiaround",    { lua: zmultiaround('asc') });
     client.defineCommand("zrevmultiaround", { lua: zmultiaround('desc') });
-
+    
+    client.defineCommand("zmultifind", { lua: zmultifind });
+    
     (client as any).redisRankExtended = true;
 }

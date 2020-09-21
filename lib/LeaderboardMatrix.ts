@@ -28,10 +28,10 @@ export type LeaderboardMatrixOptions = {
 export type MatrixEntry = {
     /** identifier */
     id: ID,
-    /** ranking */
-    rank: Rank,
+    /** ranks */
+    ranks: { [dimension: string ]: { [feature: string]: Rank } },
     /** scores */
-    scores: { [ feature: string ]: Score }
+    scores: { [dimension: string ]: { [feature: string]: Score } },
 }
 
 export type MatrixEntryUpdateQuery = {
@@ -40,13 +40,26 @@ export type MatrixEntryUpdateQuery = {
 }
 
 type QueryInfo = {
-    /** main feature key to do sorting */
-    featureSortKey: KeyType;
-    /** main feature sort policy */
-    featureSortPolicy: SortPolicy;
+    dimensions: DimensionName[],
+    features: FeatureName[],
+    keys: KeyType[],
+    sortPolicies: SortPolicy[]
+
     /** all features to retrive */
-    featureKeys: KeyType[];
+    //featureKeys: KeyType[],
+    /** features sort policies */
+    //featureSortPolicies: SortPolicy[],
+    /** feature that will be used to sort the results */
+    //mainFeatureIndex: number
+
 }
+
+type MatrixLeaderboardQueryFilter = {
+    /** filter dimensions */
+    dimensions?: DimensionName[],
+    /** filter features */
+    features?: FeatureName[]
+};
 
 export class LeaderboardMatrix {
 
@@ -129,6 +142,7 @@ export class LeaderboardMatrix {
         await Leaderboard.execPipeline(pipeline);
     }
 
+    /*
     async list(dimension: DimensionName, featureToSort: FeatureName, low: number, high: number): Promise<MatrixEntry[]> {
         if(low < 1 || high < 1) throw new Error("Out of bounds (<1)");
         if(low > high) throw new Error(`high must be greater than low (${low} <= ${high})`);
@@ -155,7 +169,7 @@ export class LeaderboardMatrix {
      * Retrieve the top entries
      * 
      * @param max max number of entries to return
-     */
+     * /
     top(dimension: DimensionName, featureToSort: FeatureName, max: number = 10): Promise<MatrixEntry[]> {
         return this.list(dimension, featureToSort, 1, max);
     }
@@ -169,14 +183,18 @@ export class LeaderboardMatrix {
      * @param id 
      * @param distance number of entries at each side of the queried entry
      * @param fillBorders include entries at the other side if the entry is too close to one of the borders.
-     */
+     * /
     async around(dimension: DimensionName, featureToSort: FeatureName, id: ID, distance: number, fillBorders: boolean = false) {
         let queryInfo = this.getQueryInfo(dimension, featureToSort);
         if(!queryInfo)
             return [];
 
-        // @ts-ignore
-        let result = await (queryInfo.featureSortPolicy === 'low-to-high' ? this.client.zmultiaround : this.client.zrevmultiaround).bind(this.client)(
+        let result = await (queryInfo.featureSortPolicy === 'high-to-low' ?
+            // @ts-ignore
+            this.client.zrevmultiaround :
+            // @ts-ignore
+            this.client.zmultiaround
+        ).bind(this.client)(
             queryInfo.featureKeys.length + 1,
             queryInfo.featureSortKey,
             queryInfo.featureKeys,
@@ -188,6 +206,28 @@ export class LeaderboardMatrix {
         );
 
         return this.parseEntries(result[1], parseInt(result[0]) + 1);
+    }
+    */
+
+    async find(id: ID, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry | null> {
+        let queryInfo = this.getQueryInfo(filter);
+        if(!queryInfo)
+            return null;
+
+        console.log(queryInfo);
+
+        // @ts-ignore
+        let result = await this.client.zmultifind(
+            queryInfo.keys.length,
+            queryInfo.keys,
+            
+            id,
+            [queryInfo.sortPolicies]
+        );
+
+        console.log(result);
+
+        return null;
     }
 
     /**
@@ -207,11 +247,15 @@ export class LeaderboardMatrix {
         }));
     }
 
+    /*
     private getQueryInfo(dimension: DimensionName, featureToSort: FeatureName): QueryInfo | null {
-        let featureSortKey: KeyType | undefined;
-        let featureSortPolicy: SortPolicy | undefined;
-        let featureKeys: KeyType[] = [];
+        let result: QueryInfo = {
+            featureKeys: [],
+            featureSortPolicies: [],
+            mainFeatureIndex: -1
+        }
 
+        let i = 0;
         for(let feat of this.options.features) {
             let lb = this.getLeaderboard(dimension, feat.name);
 
@@ -219,21 +263,53 @@ export class LeaderboardMatrix {
             // to ensure featureKeys match the order of this.options.features
             if(!lb) throw new Error("Assertion: Leaderboard should exist");
             
-            if(feat.name === featureToSort) {
-                featureSortKey = lb.redisKey;
-                featureSortPolicy = lb.sortPolicy;
-            }
-            
-            featureKeys.push(lb.redisKey);
+            if(feat.name === featureToSort)
+                result.mainFeatureIndex = i;
+
+            result.featureKeys.push(lb.redisKey);
+            result.featureSortPolicies.push(lb.sortPolicy);
+
+            i++;
         }
 
-        if(!featureSortKey || !featureSortPolicy || featureKeys.length === 0)
+        if(result.mainFeatureIndex < 0)
             return null;
 
-        return { // QueryInfo
-            featureSortKey,
-            featureSortPolicy,
-            featureKeys
+        return result;
+    }
+    */
+
+    private getQueryInfo(filter: MatrixLeaderboardQueryFilter): QueryInfo | null {
+        let result: QueryInfo = {
+            features: [],
+            dimensions: [],
+            keys: [],
+            sortPolicies: []
         };
+
+        // only filtered or all
+        result.dimensions = filter.dimensions || this.options.dimensions.map(d => d.name);
+        result.features = filter.features || this.options.features.map(f => f.name);
+
+        for(let dim of result.dimensions) {
+            for(let feat of this.options.features) {
+                if(filter.features?.length && !filter.features.includes(feat.name))
+                    continue; // filtered
+                
+                let lb = this.getLeaderboard(dim, feat.name);
+
+                // Note: we throw in this assertion instead of continue
+                // to ensure featureKeys match the order of this.options.features
+                if(!lb) throw new Error("Assertion: Leaderboard should exist");
+                
+                result.keys.push(lb.redisKey);
+                result.sortPolicies.push(feat.options.sortPolicy);
+            }
+        }
+
+        if(result.keys.length === 0)
+            return null;
+
+        return result;
     }
 }
