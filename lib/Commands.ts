@@ -1,4 +1,4 @@
-import { Redis } from "ioredis";
+import { Redis } from 'ioredis';
 
 type SortDirection = 'desc' | 'asc';
 
@@ -86,19 +86,20 @@ end
  * `ARGV[1]`: entry id  
  * `ARGV[2]`: distance  
  * `ARGV[3]`: fill_borders ('true' or 'false')
+ * `ARGV[4]`: sort_idr ('high-to-low' or 'low-to-high')
  * 
  * Returns [ lowest_rank, [[id, score], ...] ]
  */
-const zaround = (dir: SortDirection) => `
+const zaround = `
 ${aroundRange}
 
-local range = aroundRange(KEYS[1], ARGV[1], ARGV[2], ARGV[3], 'TODO');
+local range = aroundRange(KEYS[1], ARGV[1], ARGV[2], ARGV[3], ARGV[4]);
 -- entry not found
 if range[1] == -1 then return { 0, {} } end
 return {
     range[1],
     -- retrive final rank
-    redis.call('z${dir === 'desc' ? 'rev' : ''}range', KEYS[1], range[1], range[2], 'WITHSCORES')
+    redis.call((ARGV[4] == 'low-to-high') and 'zrange' or 'zrevrange', KEYS[1], range[1], range[2], 'WITHSCORES')
 }
 `;
 
@@ -238,9 +239,7 @@ export function extendRedisClient(client: Redis) {
     client.defineCommand("zrevfind",    { numberOfKeys: 1, lua: zfind('desc')   });
     client.defineCommand("zkeeptop",    { numberOfKeys: 1, lua: zkeeptop('asc')  });
     client.defineCommand("zrevkeeptop", { numberOfKeys: 1, lua: zkeeptop('desc') });
-    client.defineCommand("zaround",     { numberOfKeys: 1, lua: zaround('asc')  });
-    client.defineCommand("zrevaround",  { numberOfKeys: 1, lua: zaround('desc') });
-
+    client.defineCommand("zaround",     { numberOfKeys: 1, lua: zaround  });
     client.defineCommand("zmatrixfind",   { lua: zmatrixfind });
     client.defineCommand("zmatrixrange",  { lua: zmatrixrange });
     client.defineCommand("zmatrixaround", { lua: zmatrixaround });
