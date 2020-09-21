@@ -229,6 +229,8 @@ return retrieveEntries(
  * * `zaround` & `zrevaround`: return the entries around an entry in a defined
  * distance with a fill border policy
  * 
+ * TODO: document when tests are done
+ * 
  * @see https://github.com/luin/ioredis#lua-scripting
  * @param client the client to define the commands
  */

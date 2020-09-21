@@ -39,27 +39,20 @@ export type MatrixEntryUpdateQuery = {
     values: { [ feature: string ]: number | Score }
 }
 
-type QueryInfo = {
-    dimensions: DimensionName[],
-    features: FeatureName[],
-    keys: KeyType[],
-    sortPolicies: SortPolicy[]
-
-    /** all features to retrive */
-    //featureKeys: KeyType[],
-    /** features sort policies */
-    //featureSortPolicies: SortPolicy[],
-    /** feature that will be used to sort the results */
-    //mainFeatureIndex: number
-
-}
-
-type MatrixLeaderboardQueryFilter = {
+export type MatrixLeaderboardQueryFilter = {
     /** filter dimensions */
     dimensions?: DimensionName[],
     /** filter features */
     features?: FeatureName[]
 };
+
+/** internal query description */
+type QueryInfo = {
+    dimensions: DimensionName[],
+    features: FeatureName[],
+    keys: KeyType[],
+    sortPolicies: SortPolicy[]
+}
 
 export class LeaderboardMatrix {
 
@@ -85,6 +78,8 @@ export class LeaderboardMatrix {
                 let key = `${dim.name}:${feat.name}`;
                 let redisKey = `${baseKey}:${key}`
                 this.matrix[key] =
+                    // if a cycle is defined, use a periodic leaderboard
+                    // otherwise use a regular leaderboard
                     dim.cycle ?
                         new PeriodicLeaderboard(client, redisKey, {
                             leaderboardOptions: feat.options,
@@ -218,8 +213,6 @@ export class LeaderboardMatrix {
             sortKey ? queryInfo.keys.indexOf(sortKey) + 1 : -1,
             ...args
         );
-
-        console.log(result);
 
         // parse and filter NULLs
         let entries: MatrixEntry[] = [];
