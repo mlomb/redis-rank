@@ -24,7 +24,7 @@ const REFERENCE_DATE = new Date(
     1 // seconds
 );
 
-describe('PeriodicLeaderboard', () => {
+describe("PeriodicLeaderboard", () => {
     let plb: PeriodicLeaderboard;
 
     describe.each([
@@ -43,7 +43,7 @@ describe('PeriodicLeaderboard', () => {
             });
         });
 
-        test('expected periodic key', () => {
+        test("expected periodic key", () => {
             const halfWindowSecs = windowSecs * 0.5;
 
             let lastKey: PeriodicKey = plb.getKey(REFERENCE_DATE);
@@ -97,7 +97,7 @@ describe('PeriodicLeaderboard', () => {
         expect(plb.getKey(time)).not.toBe(plb.getKey(nextTime));
     });
 
-    test('current time & leaderboard', () => {
+    test("current time & leaderboard", () => {
         plb = new PeriodicLeaderboard(rc, TEST_KEY, {
             leaderboardOptions: lbOptions,
             cycle: 'minute'
@@ -105,7 +105,7 @@ describe('PeriodicLeaderboard', () => {
         expect(plb.getLeaderboardNow().redisKey).toBe(`${TEST_KEY}:${plb.getKey(new Date())}`);
     });
     
-    test('custom now', () => {
+    test("custom now", () => {
         plb = new PeriodicLeaderboard(rc, TEST_KEY, {
             leaderboardOptions: lbOptions,
             cycle: 'minute',
@@ -114,7 +114,7 @@ describe('PeriodicLeaderboard', () => {
         expect(plb.getKeyNow()).toBe(`y${REFERENCE_DATE.getFullYear()}-m${REFERENCE_DATE.getMonth()}-d${REFERENCE_DATE.getDate()}-h${REFERENCE_DATE.getHours()}-m${REFERENCE_DATE.getMinutes()}`);
     });
 
-    describe('cache leaderboard objects', () => {
+    describe("cache leaderboard objects", () => {
         beforeEach(() => {
             plb = new PeriodicLeaderboard(rc, TEST_KEY, {
                 leaderboardOptions: lbOptions,
@@ -122,7 +122,7 @@ describe('PeriodicLeaderboard', () => {
             });
         });
 
-        test('get same leaderboard', () => {
+        test("get same leaderboard", () => {
             plb = new PeriodicLeaderboard(rc, TEST_KEY, {
                 leaderboardOptions: lbOptions,
                 cycle: 'minute'
@@ -130,7 +130,7 @@ describe('PeriodicLeaderboard', () => {
             expect(plb.getLeaderboardAt(REFERENCE_DATE)).toBe(plb.getLeaderboardAt(REFERENCE_DATE));
         });
 
-        test('avoid leaking', () => {
+        test("avoid leaking", () => {
             plb = new PeriodicLeaderboard(rc, TEST_KEY, {
                 leaderboardOptions: lbOptions,
                 cycle: 'minute'

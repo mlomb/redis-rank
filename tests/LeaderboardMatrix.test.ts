@@ -15,10 +15,10 @@ const FOO_BAR_BAZ: MatrixEntryUpdateQuery[] = [
     { id: "baz", values: { feat1: 7, feat2: 8 } }
 ];
 
-describe('LeaderboardMatrix', () => {
+describe("LeaderboardMatrix", () => {
     let mlb: LeaderboardMatrix;
 
-    describe('multiple dimensions and features', () => {
+    describe("multiple dimensions and features", () => {
         beforeEach(() => {
             mlb = new LeaderboardMatrix(rc, TEST_KEY, {
                 dimensions: [
@@ -153,7 +153,14 @@ describe('LeaderboardMatrix', () => {
         });
     });
 
-    test('periodic leaderboards', async () => {
+    describe("filters", () => {
+        test("update", async () => {
+
+        });
+
+    });
+
+    test("periodic leaderboards", async () => {
         const reference_date = new Date();
 
         mlb = new LeaderboardMatrix(rc, TEST_KEY, {
