@@ -142,36 +142,24 @@ export class LeaderboardMatrix {
         await Leaderboard.execPipeline(pipeline);
     }
 
-    /*
-    async list(dimension: DimensionName, featureToSort: FeatureName, low: number, high: number): Promise<MatrixEntry[]> {
-        if(low < 1 || high < 1) throw new Error("Out of bounds (<1)");
-        if(low > high) throw new Error(`high must be greater than low (${low} <= ${high})`);
-
-        let queryInfo = this.getQueryInfo(dimension, featureToSort);
-        if(!queryInfo)
-            return [];
-
-        // @ts-ignore
-        let result = await (queryInfo.featureSortPolicy === 'low-to-high' ? this.client.zmultirange : this.client.zrevmultirange).bind(this.client)(
-            queryInfo.featureKeys.length + 1,
-            queryInfo.featureSortKey,
-            queryInfo.featureKeys,
-
-            low - 1,
-            high - 1,
-            queryInfo.featureKeys.length
+    async list(dimensionToSort: DimensionName, featureToSort: FeatureName, low: number, high: number, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry[]> {
+        return this.execMatrixSort(
+            'zmatrixrange',
+            filter,
+            dimensionToSort,
+            featureToSort,
+            Math.max(1, low) - 1,
+            Math.max(1, high) - 1
         );
-
-        return this.parseEntries(result, low);
     }
 
     /**
      * Retrieve the top entries
      * 
      * @param max max number of entries to return
-     * /
-    top(dimension: DimensionName, featureToSort: FeatureName, max: number = 10): Promise<MatrixEntry[]> {
-        return this.list(dimension, featureToSort, 1, max);
+     */
+    top(dimensionToSort: DimensionName, featureToSort: FeatureName, max: number = 10, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry[]> {
+        return this.list(dimensionToSort, featureToSort, 1, max);
     }
 
     /**
@@ -183,101 +171,96 @@ export class LeaderboardMatrix {
      * @param id 
      * @param distance number of entries at each side of the queried entry
      * @param fillBorders include entries at the other side if the entry is too close to one of the borders.
-     * /
-    async around(dimension: DimensionName, featureToSort: FeatureName, id: ID, distance: number, fillBorders: boolean = false) {
-        let queryInfo = this.getQueryInfo(dimension, featureToSort);
-        if(!queryInfo)
-            return [];
-
-        let result = await (queryInfo.featureSortPolicy === 'high-to-low' ?
-            // @ts-ignore
-            this.client.zrevmultiaround :
-            // @ts-ignore
-            this.client.zmultiaround
-        ).bind(this.client)(
-            queryInfo.featureKeys.length + 1,
-            queryInfo.featureSortKey,
-            queryInfo.featureKeys,
-
+     */
+    async around(dimensionToSort: DimensionName, featureToSort: FeatureName, id: ID, distance: number, fillBorders: boolean = false, filter: MatrixLeaderboardQueryFilter = {}) {
+        return this.execMatrixSort(
+            'zmatrixaround',
+            filter,
+            dimensionToSort,
+            featureToSort,
             id,
             Math.max(distance, 0),
             (fillBorders === true).toString(),
-            queryInfo.featureKeys.length
         );
-
-        return this.parseEntries(result[1], parseInt(result[0]) + 1);
     }
-    */
-
+    
     async find(id: ID, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry | null> {
+        let result = await this.execMatrix('zmatrixfind', filter, null, id);
+        return result.length ? result[0] : null;
+    }
+
+    private execMatrixSort(fnName: string, filter: MatrixLeaderboardQueryFilter, dimensionToSort: DimensionName, featureToSort: FeatureName, ...args: any): Promise<MatrixEntry[]> {
+        let sortLb = this.getLeaderboard(dimensionToSort, featureToSort);
+        if(!sortLb)
+            return Promise.resolve([]);
+        return this.execMatrix(fnName, filter, sortLb.redisKey as string, ...args);
+    }
+
+    /**
+     * Execute and parse the result of a matrix script
+     * 
+     * @param fnName 
+     * @param filter 
+     * @param sortKey 
+     * @param args 
+     */
+    private async execMatrix(fnName: string, filter: MatrixLeaderboardQueryFilter, sortKey: string | null, ...args: any): Promise<MatrixEntry[]> {
         let queryInfo = this.getQueryInfo(filter);
         if(!queryInfo)
-            return null;
-
-        console.log(queryInfo);
-
+            return [];
+    
         // @ts-ignore
-        let result = await this.client.zmultifind(
+        let result = await this.client[fnName](
             queryInfo.keys.length,
             queryInfo.keys,
             
-            id,
-            [queryInfo.sortPolicies]
+            queryInfo.sortPolicies,
+            sortKey ? queryInfo.keys.indexOf(sortKey) + 1 : -1,
+            ...args
         );
 
         console.log(result);
 
-        return null;
+        // parse and filter NULLs
+        let entries: MatrixEntry[] = [];
+        for(let r of result) {
+            let e = this.parseEntry(r, queryInfo);
+            if(e)
+                entries.push(e);
+        }
+        return entries;
     }
 
-    /**
-     * Parses the result of the Lua function 'retrieveEntries'
-     * 
-     * @param data result of retrieveEntries
-     * @param low rank of the first entry
-     */
-    private parseEntries(result: any, low: Rank): MatrixEntry[] {
-        return result[0].map((id: ID, index: number) => ({
-            id,
-            rank: low + index,
-            scores: this.options.features.reduce((scores: any, feature, f_i) => {
-                scores[feature.name] = parseFloat(result[1][f_i][index])
-                return scores;
-            }, {})
-        }));
-    }
-
-    /*
-    private getQueryInfo(dimension: DimensionName, featureToSort: FeatureName): QueryInfo | null {
-        let result: QueryInfo = {
-            featureKeys: [],
-            featureSortPolicies: [],
-            mainFeatureIndex: -1
-        }
-
-        let i = 0;
-        for(let feat of this.options.features) {
-            let lb = this.getLeaderboard(dimension, feat.name);
-
-            // Note: we throw in this assertion instead of continue
-            // to ensure featureKeys match the order of this.options.features
-            if(!lb) throw new Error("Assertion: Leaderboard should exist");
-            
-            if(feat.name === featureToSort)
-                result.mainFeatureIndex = i;
-
-            result.featureKeys.push(lb.redisKey);
-            result.featureSortPolicies.push(lb.sortPolicy);
-
-            i++;
-        }
-
-        if(result.mainFeatureIndex < 0)
+    parseEntry(data: any[], info: QueryInfo): MatrixEntry | null {
+        if(data.length < 1 + 2 * info.dimensions.length * info.features.length)
             return null;
+        let i = 0;
+        let valid = false;
 
-        return result;
+        let result: MatrixEntry = {
+            id: data[i++],
+            ranks: {},
+            scores: {}
+        };
+        
+        for(let dim of info.dimensions) {
+            let scores: { [feature: string]: Score } = {};
+            let ranks: { [feature: string]: Rank } = {};
+
+            for(let feat of info.features) {
+                scores[feat] = parseFloat(data[i++]);
+                ranks[feat] = parseInt(data[i++]) + 1;
+
+                if(!valid && !isNaN(ranks[feat]))
+                    valid = true;
+            }
+
+            result.scores[dim] = scores;
+            result.ranks[dim] = ranks;
+        }
+
+        return valid ? result : null;
     }
-    */
 
     private getQueryInfo(filter: MatrixLeaderboardQueryFilter): QueryInfo | null {
         let result: QueryInfo = {

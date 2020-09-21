@@ -71,14 +71,14 @@ describe('LeaderboardMatrix', () => {
             await mlb.update(FOO_BAR_BAZ);
             // expect(mlb.) TODO
 
-            //let r = await mlb.list("dim1", "feat1", 1, 100);
-            //console.log("LIST",r);
-            //let r2 = await mlb.around("dim1", "feat1", "foo", 2, false);
-            //console.log("AROUND",r2);
-
             let r3 = await mlb.find("foo");
-            console.log(r3);
-            
+            console.log("FIND", r3);
+            let r5 = await mlb.find("foo-*not");
+            console.log("FIND NON EXISTANT", r5);
+            let r = await mlb.list("dim1", "feat1", 1, 100);
+            console.log("LIST",r);
+            let r2 = await mlb.around("dim1", "feat1", "foo", 2, false);
+            console.log("AROUND",r2);
         });
     });
 

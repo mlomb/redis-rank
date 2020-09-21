@@ -53,9 +53,9 @@ if dif > 0 then
 end
 `;
 
-const aroundRange = (dir: SortDirection) => `
-local function aroundRange(path, id, distance, fill_borders)
-    local r = redis.call('z${dir === 'desc' ? 'rev' : ''}rank', path, id) -- entry rank
+const aroundRange = `
+local function aroundRange(path, id, distance, fill_borders, sort_dir)
+    local r = redis.call((sort_dir == 'low-to-high') and 'zrank' or 'zrevrank', path, id) -- entry rank
 
     if r == false or r == nil then
         -- entry does not exist
@@ -90,9 +90,9 @@ end
  * Returns [ lowest_rank, [[id, score], ...] ]
  */
 const zaround = (dir: SortDirection) => `
-${aroundRange(dir)}
+${aroundRange}
 
-local range = aroundRange(KEYS[1], ARGV[1], ARGV[2], ARGV[3]);
+local range = aroundRange(KEYS[1], ARGV[1], ARGV[2], ARGV[3], 'TODO');
 -- entry not found
 if range[1] == -1 then return { 0, {} } end
 return {
@@ -102,58 +102,59 @@ return {
 }
 `;
 
-const slice = `
-local function slice(array, start, finish)
-    local t = {}
-    for k = start, finish do
-        t[#t+1] = array[k]
-    end
-    return t
-end
-`;
-
-const retrieveEntries = (dir: SortDirection) => `
-local function retrieveEntries(path, feature_keys, sort_policies, low, high)
-    local ids = redis.call('z${dir === 'desc' ? 'rev' : ''}range', path, low, high);
-    local features = {}
-
-    while #feature_keys > 0 do
-        local key = table.remove(feature_keys, 1)
-
-        local scores = {}
-        for n = 1, #ids, 1 do
-            table.insert(scores, redis.call('zscore', key, ids[n]))
-        end
-        features[#features+1] = scores
-    end
-
-    -- [
-    --   ['foo', 'bar', 'baz'],
-    --   [ [1, 2, 3], [4, 5, 6] ]
-    -- ]
-    return { ids, features }
-end
-`;
-
-const zmultifind = `
+const retrieveEntry = `
 -- id: entry id
 -- keys: leaderboard keys
 -- sorts: sort policies for each leaderboard
-local function retriveEntry(id, keys, sorts)
+local function retrieveEntry(id, keys, sorts)
     local result = {}
 
     result[#result+1] = id
 
     for i = 1, #keys, 1 do
         result[#result+1] = redis.call('zscore', keys[i], id)
-        result[#result+1] = redis.call('zrank', keys[i], id)
+        -- skip zrank if we know it is going to fail
+        if result[#result] == nil then
+            result[#result+1] = nil
+        else
+            result[#result+1] = redis.call((sorts[i] == 'low-to-high') and 'zrank' or 'zrevrank', keys[i], id)
+        end
     end
 
     -- [ id, score, rank, score, rank, ...]
     return result
 end
+`;
 
-return retriveEntry(ARGV[1], KEYS, ARGV[2])
+const retrieveEntries = `
+${retrieveEntry}
+
+local function retrieveEntries(keys, sorts, sortIndex, low, high)
+    -- return { keys, sorts, sortIndex, low, high, keys[sortIndex], sorts[sortIndex] }
+    local ids = redis.call(
+        (sorts[sortIndex] == 'low-to-high') and 'zrange' or 'zrevrange',
+        keys[sortIndex],
+        low,
+        high
+    )
+
+    local results = {}
+
+    for i = 1, #ids, 1 do
+        results[#results+1] = retrieveEntry(ids[i], keys, sorts)
+    end
+    
+    -- [
+    --    [ id, score, rank, score, rank, ...],
+    --    ...
+    -- ]
+    return results
+end
+`;
+
+const zmatrixfind = `
+${retrieveEntry}
+return { retrieveEntry(ARGV[#KEYS + 2], KEYS, ARGV) }
 `;
 
 /**
@@ -164,11 +165,18 @@ return retriveEntry(ARGV[1], KEYS, ARGV[2])
  * `ARGV[3]`: number of feature keys
  * 
  * Returns [ [id, id, id, ...], [score, score, score, ...] ]
+ * 
+ * mal, arreglar ↑
  */
-const zmultirange = (dir: SortDirection) => `
-${slice}
-${retrieveEntries(dir)}
-return retrieveEntries(KEYS[1], slice(KEYS, 2, ARGV[3]+1), ARGV[1], ARGV[2])
+const zmatrixrange = `
+${retrieveEntries}
+return retrieveEntries(
+    KEYS,
+    ARGV,
+    tonumber(ARGV[#KEYS + 1]),
+    tonumber(ARGV[#KEYS + 2]),
+    tonumber(ARGV[#KEYS + 3])
+)
 `;
 
 /**
@@ -180,18 +188,30 @@ return retrieveEntries(KEYS[1], slice(KEYS, 2, ARGV[3]+1), ARGV[1], ARGV[2])
  * `ARGV[4]`: number of feature keys
  * 
  * Returns [ [id, id, id, ...], [score, score, score, ...] ]
+ * 
+ * TODO
  */
-const zmultiaround = (dir: SortDirection) => `
-${slice}
-${aroundRange(dir)}
-${retrieveEntries(dir)}
+const zmatrixaround = `
+${aroundRange}
+${retrieveEntries}
 
-local range = aroundRange(KEYS[1], ARGV[1], ARGV[2], ARGV[3]);
-if range[1] == -1 then return { {}, { {},{} } } end
-return {
+local sortIndex = tonumber(ARGV[#KEYS + 1])
+
+local range = aroundRange(
+    KEYS[sortIndex],
+    ARGV[#KEYS + 2],
+    ARGV[#KEYS + 3],
+    ARGV[#KEYS + 4],
+    ARGV[sortIndex]
+)
+
+return retrieveEntries(
+    KEYS,
+    ARGV,
+    sortIndex,
     range[1],
-    retrieveEntries(KEYS[1], slice(KEYS, 2, ARGV[4]+1), range[1], range[2])
-}
+    range[2]
+)
 `;
 
 /**
@@ -220,12 +240,10 @@ export function extendRedisClient(client: Redis) {
     client.defineCommand("zrevkeeptop", { numberOfKeys: 1, lua: zkeeptop('desc') });
     client.defineCommand("zaround",     { numberOfKeys: 1, lua: zaround('asc')  });
     client.defineCommand("zrevaround",  { numberOfKeys: 1, lua: zaround('desc') });
-    client.defineCommand("zmultirange",     { lua: zmultirange('asc') });
-    client.defineCommand("zrevmultirange",  { lua: zmultirange('desc') });
-    client.defineCommand("zmultiaround",    { lua: zmultiaround('asc') });
-    client.defineCommand("zrevmultiaround", { lua: zmultiaround('desc') });
-    
-    client.defineCommand("zmultifind", { lua: zmultifind });
+
+    client.defineCommand("zmatrixfind",   { lua: zmatrixfind });
+    client.defineCommand("zmatrixrange",  { lua: zmatrixrange });
+    client.defineCommand("zmatrixaround", { lua: zmatrixaround });
     
     (client as any).redisRankExtended = true;
 }
