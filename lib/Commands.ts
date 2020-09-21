@@ -64,7 +64,7 @@ local function aroundRange(path, id, distance, fill_borders, sort_dir)
     
     local c = redis.call('zcard', path) -- lb size
     local l = math.max(0, r - distance) -- lower bound rank
-    local h = 0                         -- high bound rank
+    local h = 0                         -- upper bound rank
 
     if fill_borders == 'true' then
         h = l + 2 * distance
@@ -76,7 +76,7 @@ local function aroundRange(path, id, distance, fill_borders, sort_dir)
         h = math.min(c, r + distance)
     end
 
-    -- low bound, high bound, lb card, query rank
+    -- lower bound, upper bound, lb card, query rank
     return { l, h, c, r };
 end
 `;
@@ -130,13 +130,17 @@ end
 const retrieveEntries = `
 ${retrieveEntry}
 
-local function retrieveEntries(keys, sorts, sortIndex, low, high)
-    -- return { keys, sorts, sortIndex, low, high, keys[sortIndex], sorts[sortIndex] }
+-- keys: leaderboard keys
+-- sorts: sort policies for each leaderboard
+-- sort_index: index of the key to do the zrange
+-- lower: lower bound rank
+-- upper: upper bound rank
+local function retrieveEntries(keys, sorts, sort_index, lower, upper)
     local ids = redis.call(
-        (sorts[sortIndex] == 'low-to-high') and 'zrange' or 'zrevrange',
-        keys[sortIndex],
-        low,
-        high
+        (sorts[sort_index] == 'low-to-high') and 'zrange' or 'zrevrange',
+        keys[sort_index],
+        lower,
+        upper
     )
 
     local results = {}

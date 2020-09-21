@@ -265,19 +265,19 @@ export class Leaderboard {
      * Complexity: `O(log(N)+M)` where N is the number of entries in the
      *             leaderboard and M the number of entries returned
      * 
-     * @param low lower bound to query (inclusive)
-     * @param high higher bound to query (inclusive)
+     * @param lower lower bound to query (inclusive)
+     * @param upper upper bound to query (inclusive)
      */
-    async list(low: Rank, high: Rank): Promise<Entry[]> {
+    async list(lower: Rank, upper: Rank): Promise<Entry[]> {
         let result = await this.client[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](
             this.key,
-            Math.max(low, 1) - 1,
-            Math.max(high, 1) - 1,
+            Math.max(lower, 1) - 1,
+            Math.max(upper, 1) - 1,
             'WITHSCORES'
         );
         let entries: Entry[] = [];
 
-        let rank = low;
+        let rank = lower;
         for (let i = 0; i < result.length; i += 2) {
             entries.push({
                 id: result[i],

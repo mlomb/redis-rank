@@ -142,14 +142,14 @@ export class LeaderboardMatrix {
         await Leaderboard.execPipeline(pipeline);
     }
 
-    async list(dimensionToSort: DimensionName, featureToSort: FeatureName, low: number, high: number, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry[]> {
+    async list(dimensionToSort: DimensionName, featureToSort: FeatureName, lower: Rank, upper: Rank, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry[]> {
         return this.execMatrixSort(
             'zmatrixrange',
             filter,
             dimensionToSort,
             featureToSort,
-            Math.max(1, low) - 1,
-            Math.max(1, high) - 1
+            Math.max(1, lower) - 1,
+            Math.max(1, upper) - 1
         );
     }
 
