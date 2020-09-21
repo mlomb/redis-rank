@@ -269,10 +269,12 @@ export class Leaderboard {
      * @param high higher bound to query (inclusive)
      */
     async list(low: Rank, high: Rank): Promise<Entry[]> {
-        if(low < 1 || high < 1) throw new Error("Out of bounds (<1)");
-        if(low > high) throw new Error(`high must be greater than low (${low} <= ${high})`);
-
-        let result = await this.client[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](this.key, low-1, high-1, 'WITHSCORES');
+        let result = await this.client[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](
+            this.key,
+            Math.max(low, 1) - 1,
+            Math.max(high, 1) - 1,
+            'WITHSCORES'
+        );
         let entries: Entry[] = [];
 
         let rank = low;
@@ -310,11 +312,14 @@ export class Leaderboard {
      * @param max number of entries to return
      */
     async bottom(max: number = 10): Promise<Entry[]> {
-        if(max < 1) throw new Error("Out of bounds (<1)");
-
         let pipeline = this.client.pipeline();
         pipeline.zcard(this.redisKey);
-        pipeline[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](this.key, -max, -1, 'WITHSCORES');
+        pipeline[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](
+            this.key,
+            -Math.max(1, max),
+            -1,
+            'WITHSCORES'
+        );
         let results = await Leaderboard.execPipeline(pipeline);
         
         let entries: Entry[] = [];
@@ -359,11 +364,12 @@ export class Leaderboard {
      */
     async around(id: ID, distance: number, fillBorders: boolean = false): Promise<Entry[]> {
         //@ts-ignore
-        let result = await this.client[this.options.sortPolicy === 'high-to-low' ? 'zrevaround' : 'zaround'](
+        let result = await this.client.zaround(
             this.key,
             id,
             Math.max(distance, 0),
-            (fillBorders === true).toString()
+            (fillBorders === true).toString(),
+            this.options.sortPolicy
         );
 
         let entries: Entry[] = [];

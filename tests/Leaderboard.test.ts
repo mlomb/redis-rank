@@ -131,21 +131,6 @@ describe('Leaderboard', () => {
                 expect(await lb.at(-100)).toBe(null);
                 expect(await lb.at(100000)).toBe(null);
             });
-
-            test('bottom crash', async () => {
-                expect(lb.bottom(0)).rejects.toThrow();
-                expect(lb.bottom(-1)).rejects.toThrow();
-            });
-            
-            test('list crash', async () => {
-                expect(lb.list(0, 5)).rejects.toThrow(); // low < 1
-                expect(lb.list(5, 0)).rejects.toThrow(); // high < 1
-                expect(lb.list(10, 5)).rejects.toThrow(); // low > high
-            });
-
-            test('around invalid distance', async () => {
-                expect(lb.around("foo", -1)).rejects.toThrow();
-            });
         });
     });
     
