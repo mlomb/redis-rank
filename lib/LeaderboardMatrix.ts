@@ -34,6 +34,12 @@ export type MatrixEntry = {
     scores: { [dimension: string ]: { [feature: string]: Score } },
 }
 
+export type MatrixShowcase = {
+    dimension: DimensionName,
+    feature: FeatureName,
+    entries: MatrixEntry[]
+}
+
 export type MatrixCount = {
     [dimension: string ]: {
         [feature: string]: number
@@ -273,6 +279,54 @@ export class LeaderboardMatrix {
             Math.max(distance, 0),
             (fillBorders === true).toString(),
         );
+    }
+
+    /**
+     * Returns the top `threshold` entries from a leaderboard that has at
+     * least `threshold` entries. The `dimensionOrder` defines the order
+     * to check the leaderboards, and `featureToSort` the feature (which is fixed).  
+     * If no dimension meet the threshold, then the dimension with the highest
+     * number of entries will be used to query the entries.  
+     * If all dimensions have 0 entries, then returns null
+     * 
+     * Note: this function actually does two round trips to Redis!
+     * (TODO: optimize, haven't done it for simplicity)
+     * 
+     * @param dimensionOrder order to test the dimensions
+     * @param featureToSort feature to perform the sorting
+     * @param threshold minimum number of entries that should be present in the leaderboard
+     * @param filter filter to apply
+     */
+    async showcase(dimensionOrder: DimensionName[], featureToSort: FeatureName, threshold: number, filter: MatrixLeaderboardQueryFilter = { }): Promise<MatrixShowcase | null> {
+        if(dimensionOrder.length === 0 || threshold < 0)
+            return null;
+        
+        let counts = await this.count();
+        let highest: number = 0;
+        let highestDim: DimensionName | null = null;
+        
+        for(let dim of dimensionOrder) {
+            let count = counts[dim] ? (counts[dim][featureToSort] || 0) : 0;
+            if(count >= threshold) {
+                return {
+                    dimension: dim,
+                    feature: featureToSort,
+                    entries: await this.top(dim, featureToSort, threshold, filter)
+                };
+            } else if(count > highest) {
+                highest = count;
+                highestDim = dim;
+            }
+        }
+
+        if(highestDim === null)
+            return null;
+
+        return {
+            dimension: highestDim,
+            feature: featureToSort,
+            entries: await this.top(highestDim, featureToSort, threshold, filter)
+        };
     }
 
     /**

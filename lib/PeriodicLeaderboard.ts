@@ -48,7 +48,7 @@ const msTimezoneOffset = new Date().getTimezoneOffset() * 60 * 1000;
  * 604800000 = 1 week in milliseconds
  * 
  * Note: we add 4 days because January 1st, 1970 was thursday (and weeks start
- * on sunday). I think it should be 3 days a not 4, but 3 resutls in
+ * on sunday). I think it should be 3 days and not 4, but 3 result in
  * incorrect values. ¯\_(ツ)_/¯
  */
 const getWeekNumber = (time: Date) => Math.floor((time.getTime() + 345600000 - msTimezoneOffset) / 604800000);

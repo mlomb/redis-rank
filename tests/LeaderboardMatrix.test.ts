@@ -161,6 +161,40 @@ describe("LeaderboardMatrix", () => {
                 expect(results[2]).toMatchObject(foo_correct);
             });
         });
+
+        describe("showcase", () => {
+            test("both meet", async () => {
+                await mlb.update(FOO_BAR_BAZ); // update dim1 and dim2
+                let entries = await mlb.top("dim1", "feat1", 3);
+                expect(await mlb.showcase(["dim1"], "feat1", 3)).toMatchObject({ dimension: "dim1", entries });
+                expect(await mlb.showcase(["dim2"], "feat1", 3)).toMatchObject({ dimension: "dim2", entries });
+                expect(await mlb.showcase(["dim1", "dim2"], "feat1", 3)).toMatchObject({ dimension: "dim1", entries });
+                expect(await mlb.showcase(["dim2", "dim1"], "feat1", 3)).toMatchObject({ dimension: "dim2", entries });
+            });
+
+            test("dim1 does not meet", async () => {
+                await mlb.update(FOO_BAR_BAZ, ["dim2"]); // update only dim2
+                let entries = await mlb.top("dim2", "feat1", 3);
+                expect(await mlb.showcase(["dim1"], "feat1", 3)).toBeNull();
+                expect(await mlb.showcase(["dim2"], "feat1", 3)).toMatchObject({ dimension: "dim2", entries });
+                expect(await mlb.showcase(["dim1", "dim2"], "feat1", 3)).toMatchObject({ dimension: "dim2", entries });
+                expect(await mlb.showcase(["dim2", "dim1"], "feat1", 3)).toMatchObject({ dimension: "dim2", entries });
+            });
+            
+            test("none meet", async () => {
+                await mlb.update(FOO_BAR_BAZ, ["dim2"]); // update only dim2
+                let entries = await mlb.top("dim2", "feat1", 5);
+                expect(await mlb.showcase(["dim1", "dim2"], "feat1", 5)).toMatchObject({ dimension: "dim2", entries });
+                expect(await mlb.showcase(["dim2", "dim1"], "feat1", 5)).toMatchObject({ dimension: "dim2", entries });
+            });
+
+            test("empty or invalid", async () => {
+                await mlb.update(FOO_BAR_BAZ);
+                expect(await mlb.showcase([], "feat1", 3)).toBeNull();
+                expect(await mlb.showcase(["invalid"], "feat1", 3)).toBeNull();
+                expect(await mlb.showcase(["dim1"], "invalid", 3)).toBeNull();
+            });
+        });
         
         test("update filter features", async () => {
             await mlb.update({
@@ -238,6 +272,13 @@ describe("LeaderboardMatrix", () => {
                     checkFilter(e);
             });
             
+            test("showcase", async () => {
+                let results = await mlb.showcase(["dim1"], "feat2", 3, filter);
+                expect(results).not.toBeNull();
+                for(let e of results!.entries)
+                    checkFilter(e);
+            });
+
             test("should include the sorting pair", async () => {
                 let results = await mlb.around("dim2", "feat1", "foo", 10, true, filter); // note we're querying dim2/feat1
                 for(let entry of results) {
@@ -288,7 +329,7 @@ describe("LeaderboardMatrix", () => {
                 expect(await mlb.list("dim1", "feat1", 100, 1)).toHaveLength(0);
             });
 
-            test("invalid list", async () => {
+            test("invalid around", async () => {
                 expect(await mlb.around("bad", "feat1", "foo", 10)).toHaveLength(0);
                 expect(await mlb.around("dim1", "bad", "foo", 10)).toHaveLength(0);
                 expect(await mlb.around("dim1", "feat1", "bad", 10)).toHaveLength(0);
