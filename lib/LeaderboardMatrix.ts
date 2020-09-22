@@ -56,12 +56,16 @@ type QueryInfo = {
 
 export class LeaderboardMatrix {
 
-    private readonly client: Redis;
-    private readonly baseKey: string;
-    private readonly options: LeaderboardMatrixOptions;
+    public readonly client: Redis;
+    public readonly baseKey: string;
+    public readonly options: LeaderboardMatrixOptions;
+
     private readonly matrix: { [key: string]: Leaderboard | PeriodicLeaderboard };
+    private readonly allDimensions: DimensionName[];
+    private readonly allFeatures: FeatureName[];
 
     /**
+     * Create a matrix of leaderboards
      * 
      * @param client ioredis client
      * @param baseKey prefix for the redis key of all leaderboards in the matrix
@@ -89,20 +93,36 @@ export class LeaderboardMatrix {
                         new Leaderboard(client, redisKey, feat.options);
             }
         }
+
+        this.allDimensions = this.options.dimensions.map(d => d.name);
+        this.allFeatures = this.options.features.map(d => d.name);
     }
 
     /**
+     * Get the raw leaderboard object. The difference with `getLeaderboard` is
+     * that you get the underlying periodic leaderboard wrapper instead of
+     * a specific leaderboard of a periodic cycle.
+     * 
+     * @param dimension dimension name
+     * @param feature feature name
+     */
+    getRawLeaderboard(dimension: DimensionName, feature: FeatureName): Leaderboard | PeriodicLeaderboard | null {
+        let key = `${dimension}:${feature}`;
+        let lb = this.matrix[key];
+        return lb ? lb : null;
+    }
+
+    /**
+     * Get a leaderboard in the matrix
      * 
      * Note: returns null if the dimension/feature pair is invalid
      * 
      * @param dimension dimension name
      * @param feature feature name
-     * @param time 
+     * @param time time (for periodic leaderboards). If not provided, `now()` will be used
      */
     getLeaderboard(dimension: DimensionName, feature: FeatureName, time?: Date): Leaderboard | null {
-        let key = `${dimension}:${feature}`;
-        let lb = this.matrix[key];
-
+        let lb = this.getRawLeaderboard(dimension, feature)
         if(!lb) // invalid leaderboard
             return null;
         if(lb instanceof PeriodicLeaderboard)
@@ -110,7 +130,15 @@ export class LeaderboardMatrix {
         return lb;
     }
 
-    async update(entries: MatrixEntryUpdateQuery | MatrixEntryUpdateQuery[], dimensions?: DimensionName[]) {
+    /**
+     * Update one or more entries. If one of the entries does not exists,
+     * it will be created. The update behaviour is determined by the sort and
+     * update policies of each leaderboard in the matrix.
+     * 
+     * @param entries entry or list of entries to update
+     * @param dimensions filter the update to only this dimensions. If not provided, all dimensions will be updated
+     */
+    update(entries: MatrixEntryUpdateQuery | MatrixEntryUpdateQuery[], dimensions?: DimensionName[]): Promise<any> {
         if (!Array.isArray(entries))
             entries = [entries];
 
@@ -134,9 +162,33 @@ export class LeaderboardMatrix {
             }
         }
 
-        await Leaderboard.execPipeline(pipeline);
+        return Leaderboard.execPipeline(pipeline);
     }
 
+    remove(ids: ID | ID[], dimensions?: DimensionName[], features?: FeatureName[]) {
+        
+    }
+
+    /**
+     * Retrieve an entry. If it doesn't exist, it returns null.
+     * 
+     * @param id entry id
+     * @param filter filter to apply
+     */
+    async find(id: ID, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry | null> {
+        let result = await this.execMatrix('zmatrixfind', filter, null, id);
+        return result.length ? result[0] : null;
+    }
+
+    /**
+     * Retrieve entries between ranks
+     * 
+     * @param dimensionToSort dimension to perform the sorting
+     * @param featureToSort feature to perform the sorting
+     * @param lower lower bound to query (inclusive)
+     * @param upper upper bound to query (inclusive)
+     * @param filter filter to apply
+     */
     async list(dimensionToSort: DimensionName, featureToSort: FeatureName, lower: Rank, upper: Rank, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry[]> {
         return this.execMatrixSort(
             'zmatrixrange',
@@ -161,11 +213,12 @@ export class LeaderboardMatrix {
      * Retrieve the entries around an entry
      * 
      * @see Leaderboard.around for details
-     * @param dimension 
-     * @param featureToSort 
-     * @param id 
+     * @param dimensionToSort dimension to perform the sorting
+     * @param featureToSort feature to perform the sorting
+     * @param id id of the entry at the center
      * @param distance number of entries at each side of the queried entry
-     * @param fillBorders include entries at the other side if the entry is too close to one of the borders.
+     * @param fillBorders include entries at the other side if the entry is too close to one of the borders
+     * @param filter filter to apply
      */
     async around(dimensionToSort: DimensionName, featureToSort: FeatureName, id: ID, distance: number, fillBorders: boolean = false, filter: MatrixLeaderboardQueryFilter = {}) {
         return this.execMatrixSort(
@@ -179,11 +232,16 @@ export class LeaderboardMatrix {
         );
     }
     
-    async find(id: ID, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry | null> {
-        let result = await this.execMatrix('zmatrixfind', filter, null, id);
-        return result.length ? result[0] : null;
-    }
-
+    /**
+     * Execute and parse the result of a matrix script that uses sorting, it
+     * checks the dimension/feature pair and ensures that it is not filtered out
+     * 
+     * @param fnName script to execute
+     * @param filter filter to apply
+     * @param dimensionToSort dimension to perform the sorting
+     * @param featureToSort feature to perform the sorting
+     * @param args extra arguments for the script
+     */
     private execMatrixSort(fnName: string, filter: MatrixLeaderboardQueryFilter, dimensionToSort: DimensionName, featureToSort: FeatureName, ...args: any): Promise<MatrixEntry[]> {
         let sortLb = this.getLeaderboard(dimensionToSort, featureToSort);
         if(!sortLb)
@@ -201,10 +259,10 @@ export class LeaderboardMatrix {
     /**
      * Execute and parse the result of a matrix script
      * 
-     * @param fnName 
-     * @param filter 
-     * @param sortKey 
-     * @param args 
+     * @param fnName script to execute
+     * @param filter filter to apply
+     * @param sortKey sorting key (if apply)
+     * @param args extra arguments for the script
      */
     private async execMatrix(fnName: string, filter: MatrixLeaderboardQueryFilter, sortKey: string | null, ...args: any): Promise<MatrixEntry[]> {
         let queryInfo = this.getQueryInfo(filter);
@@ -225,15 +283,20 @@ export class LeaderboardMatrix {
         let entries: MatrixEntry[] = [];
         for(let r of result) {
             let e = this.parseEntry(r, queryInfo);
-            if(e)
-                entries.push(e);
+            if(e) entries.push(e);
         }
         return entries;
     }
 
-    parseEntry(data: any[], info: QueryInfo): MatrixEntry | null {
-        if(data.length < 1 + 2 * info.dimensions.length * info.features.length)
-            return null;
+    /**
+     * Parse the result of the function `retrieveEntry` to MatrixEntry
+     * 
+     * @param data result of `retrieveEntry`
+     * @param info query information
+     */
+    private parseEntry(data: any[], info: QueryInfo): MatrixEntry | null {
+        //if(data.length < 1 + 2 * info.dimensions.length * info.features.length)
+        //    return null;
         let i = 0;
         let valid = false;
 
@@ -269,6 +332,14 @@ export class LeaderboardMatrix {
         return valid ? result : null;
     }
 
+    /**
+     * Generates an object with settings to execute matrix queries
+     * 
+     * Note: this object cannot be cached because periodic leaderboards may
+     * change the keys anytime
+     * 
+     * @param filter filter to apply
+     */
     private getQueryInfo(filter: MatrixLeaderboardQueryFilter): QueryInfo | null {
         let result: QueryInfo = {
             features: [],
@@ -278,8 +349,8 @@ export class LeaderboardMatrix {
         };
 
         // only filtered or all
-        result.dimensions = filter.dimensions || this.options.dimensions.map(d => d.name);
-        result.features = filter.features || this.options.features.map(f => f.name);
+        result.dimensions = filter.dimensions || this.allDimensions;
+        result.features = filter.features || this.allFeatures;
 
         for(let dim of result.dimensions) {
             for(let feat of this.options.features) {
@@ -290,6 +361,7 @@ export class LeaderboardMatrix {
 
                 // Note: we throw in this assertion instead of continue
                 // to ensure featureKeys match the order of this.options.features
+                /* istanbul ignore next */
                 if(!lb) throw new Error("Assertion: Leaderboard should exist");
                 
                 result.keys.push(lb.redisKey);

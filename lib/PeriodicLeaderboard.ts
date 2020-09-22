@@ -69,10 +69,11 @@ const CYCLE_FUNCTIONS: { [cycle in DefaultCycles]: CycleFunction } = {
 
 export class PeriodicLeaderboard {
 
-    private client: Redis;
-    private baseKey: string;
-    private options: PeriodicLeaderboardOptions;
-    private leaderboards: Map<string, Leaderboard>;
+    public readonly client: Redis;
+    public readonly baseKey: string;
+    public readonly options: PeriodicLeaderboardOptions;
+    
+    private readonly leaderboards: Map<string, Leaderboard>;
 
     /**
      * Create a new periodic leaderboard
