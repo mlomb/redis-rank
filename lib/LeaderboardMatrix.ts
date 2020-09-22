@@ -1,5 +1,5 @@
 import { Redis, KeyType, Pipeline } from 'ioredis';
-import { Leaderboard, LeaderboardOptions, ID, Rank, Score, SortPolicy } from './Leaderboard';
+import { Leaderboard, LeaderboardOptions, ID, Rank, Score, SortPolicy, UpdatePolicy } from './Leaderboard';
 import { PeriodicLeaderboard, PeriodicLeaderboardCycle, NowFunction } from './PeriodicLeaderboard';
 
 export type DimensionName = string;
@@ -32,6 +32,12 @@ export type MatrixEntry = {
     ranks: { [dimension: string ]: { [feature: string]: Rank } },
     /** scores */
     scores: { [dimension: string ]: { [feature: string]: Score } },
+}
+
+export type MatrixCount = {
+    [dimension: string ]: {
+        [feature: string]: number
+    }
 }
 
 export type MatrixEntryUpdateQuery = {
@@ -136,13 +142,14 @@ export class LeaderboardMatrix {
      * update policies of each leaderboard in the matrix.
      * 
      * @param entries entry or list of entries to update
-     * @param dimensions filter the update to only this dimensions. If not provided, all dimensions will be updated
+     * @param dimensions filter the update to only this dimensions. If empty or undefined, all dimensions will be updated
+     * @param updatePolicy override every default update policy only for this update
      */
-    update(entries: MatrixEntryUpdateQuery | MatrixEntryUpdateQuery[], dimensions?: DimensionName[]): Promise<any> {
+    update(entries: MatrixEntryUpdateQuery | MatrixEntryUpdateQuery[], dimensions?: DimensionName[], updatePolicy?: UpdatePolicy): Promise<any> {
         if (!Array.isArray(entries))
             entries = [entries];
 
-        if(!dimensions)
+        if(!dimensions || dimensions.length === 0)
             dimensions = this.options.dimensions.map(x => x.name);
 
         let pipeline: Pipeline = this.client.pipeline();
@@ -155,7 +162,7 @@ export class LeaderboardMatrix {
                 if(updates.length) {
                     let lb = this.getLeaderboard(dim, feat.name);
                     if(lb) {
-                        lb.updatePipe(updates, pipeline);
+                        lb.updatePipe(updates, pipeline, updatePolicy);
                         lb.limitPipe(pipeline);
                     }
                 }
@@ -228,6 +235,22 @@ export class LeaderboardMatrix {
     top(dimensionToSort: DimensionName, featureToSort: FeatureName, max: number = 10, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry[]> {
         return this.list(dimensionToSort, featureToSort, 1, max, filter);
     }
+    
+    /**
+     * Retrieve the bottom entries (from worst to better)
+     * 
+     * @param max max number of entries to return
+     */
+    async bottom(dimensionToSort: DimensionName, featureToSort: FeatureName, max: number = 10, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry[]> {
+        return (await this.execMatrixSort(
+            'zmatrixrange',
+            filter,
+            dimensionToSort,
+            featureToSort,
+            -Math.max(1, max),
+            -1
+        )).reverse();
+    }
 
     /**
      * Retrieve the entries around an entry
@@ -240,7 +263,7 @@ export class LeaderboardMatrix {
      * @param fillBorders include entries at the other side if the entry is too close to one of the borders
      * @param filter filter to apply
      */
-    async around(dimensionToSort: DimensionName, featureToSort: FeatureName, id: ID, distance: number, fillBorders: boolean = false, filter: MatrixLeaderboardQueryFilter = {}) {
+    around(dimensionToSort: DimensionName, featureToSort: FeatureName, id: ID, distance: number, fillBorders: boolean = false, filter: MatrixLeaderboardQueryFilter = {}) {
         return this.execMatrixSort(
             'zmatrixaround',
             filter,
@@ -250,6 +273,33 @@ export class LeaderboardMatrix {
             Math.max(distance, 0),
             (fillBorders === true).toString(),
         );
+    }
+
+    /**
+     * Retrieve the number of entries in each leaderboard
+     */
+    async count(): Promise<MatrixCount> {
+        let pipeline = this.client.pipeline();
+
+        for(let dim of this.options.dimensions) {
+            for(let feat of this.options.features) {
+                let lb = this.getLeaderboard(dim.name, feat.name);
+                pipeline.zcard(lb!.redisKey);
+            }
+        }
+
+        let result: MatrixCount = { };
+        let counts = await Leaderboard.execPipeline(pipeline);
+        let i = 0;
+
+        for(let dim of this.options.dimensions) {
+            let dimCounts: { [feature: string]: number } = {};
+            for(let feat of this.options.features)
+                dimCounts[feat.name] = counts[i++];
+            result[dim.name] = dimCounts;
+        }
+
+        return result;
     }
     
     /**

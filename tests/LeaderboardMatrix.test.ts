@@ -128,13 +128,21 @@ describe("LeaderboardMatrix", () => {
                 expect(baz).toMatchObject(baz_correct);
             });
             
-            test("list", async () => {
+            test("list / top", async () => {
                 let results = await mlb.list("dim1", "feat1", 1, 100);
                 expect(results).toHaveLength(FOO_BAR_BAZ.length);
                 expect(results[0]).toMatchObject(baz_correct);
                 expect(results[1]).toMatchObject(bar_correct);
                 expect(results[2]).toMatchObject(foo_correct);
                 expect(results).toMatchObject(await mlb.top("dim1", "feat1"));
+            });
+            
+            test("bottom", async () => {
+                let results = await mlb.bottom("dim1", "feat1");
+                expect(results).toHaveLength(FOO_BAR_BAZ.length);
+                expect(results[0]).toMatchObject(foo_correct);
+                expect(results[1]).toMatchObject(bar_correct);
+                expect(results[2]).toMatchObject(baz_correct);
             });
             
             test("around", async () => {
@@ -214,6 +222,12 @@ describe("LeaderboardMatrix", () => {
             
             test("list (top)", async () => {
                 let results = await mlb.top("dim1", "feat2", 10, filter);
+                for(let e of results)
+                    checkFilter(e);
+            });
+            
+            test("bottom", async () => {
+                let results = await mlb.bottom("dim1", "feat2", 10, filter);
                 for(let e of results)
                     checkFilter(e);
             });
@@ -328,6 +342,59 @@ describe("LeaderboardMatrix", () => {
                 expect(await mlb.find("foo")).not.toBeNull();
             });
         });
+    
+        test("count", async () => {
+            await mlb.update([
+                // 1
+                { id: '1', values: { feat1: 1 } },
+                // 2
+                { id: '2', values: { feat2: 1 } },
+                { id: '3', values: { feat2: 1 } },
+            ], ["dim1"]);
+            await mlb.update([
+                // 3
+                { id: '3', values: { feat1: 1 } },
+                { id: '4', values: { feat1: 1 } },
+                { id: '5', values: { feat1: 1 } },
+                // 4
+                { id: '6', values: { feat2: 1 } },
+                { id: '7', values: { feat2: 1 } },
+                { id: '8', values: { feat2: 1 } },
+                { id: '9', values: { feat2: 1 } }
+            ], ["dim2"]);
+            expect(await mlb.count()).toMatchObject({
+                dim1: {
+                    feat1: 1,
+                    feat2: 2
+                },
+                dim2: {
+                    feat1: 3,
+                    feat2: 4
+                }
+            })
+        });
+    });
+    
+    test("top N", async () => {
+        mlb = new LeaderboardMatrix(rc, TEST_KEY, {
+            dimensions: [
+                { name: "dim1" }
+            ],
+            features: [{
+                name: "feat1",
+                options: {
+                    updatePolicy: 'replace',
+                    sortPolicy: 'high-to-low',
+                    limitTopN: 2
+                }
+            }]
+        });
+        await mlb.update({ id: "foo", values: { feat1: 1 }});
+        await mlb.update({ id: "bar", values: { feat1: 2 }});
+        await mlb.update({ id: "baz", values: { feat1: 3 }});
+        expect(await mlb.top("dim1", "feat1")).toHaveLength(2);
+        await mlb.update(FOO_BAR_BAZ);
+        expect(await mlb.top("dim1", "feat1")).toHaveLength(2);
     });
 
     test("periodic leaderboards", async () => {
