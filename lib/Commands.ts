@@ -85,8 +85,8 @@ end
  * `KEYS[1]`: leaderboard key  
  * `ARGV[1]`: entry id  
  * `ARGV[2]`: distance  
- * `ARGV[3]`: fill_borders ('true' or 'false')
- * `ARGV[4]`: sort_idr ('high-to-low' or 'low-to-high')
+ * `ARGV[3]`: fill_borders ('true' or 'false')  
+ * `ARGV[4]`: sort_dir ('high-to-low' or 'low-to-high')
  * 
  * Returns [ lowest_rank, [[id, score], ...] ]
  */
@@ -157,21 +157,26 @@ local function retrieveEntries(keys, sorts, sort_index, lower, upper)
 end
 `;
 
+/**
+ * `KEYS`: leaderboard keys  
+ * `ARGV[1 .. #KEYS]`: sort policies for each leaderboard  
+ * `ARGV[#KEYS + 2]`: id to find
+ * 
+ * Returns an array of size 1 of entries from `retrieveEntry`
+ */
 const zmatrixfind = `
 ${retrieveEntry}
 return { retrieveEntry(ARGV[#KEYS + 2], KEYS, ARGV) }
 `;
 
 /**
- * `KEYS[1]`: sorting leaderboard key  
- * `KEYS[2+]`: all feature keys  
- * `ARGV[1]`: low rank  
- * `ARGV[2]`: high rank  
- * `ARGV[3]`: number of feature keys
+ * `KEYS`: leaderboard keys  
+ * `ARGV[1 .. #KEYS]`: sort policies for each leaderboard  
+ * `ARGV[#KEYS + 1]`: index of the leaderboard used to sort  
+ * `ARGV[#KEYS + 2]`: lower rank  
+ * `ARGV[#KEYS + 3]`: upper rank
  * 
- * Returns [ [id, id, id, ...], [score, score, score, ...] ]
- * 
- * mal, arreglar ↑
+ * Returns an array of entries from `retrieveEntry`
  */
 const zmatrixrange = `
 ${retrieveEntries}
@@ -179,22 +184,20 @@ return retrieveEntries(
     KEYS,
     ARGV,
     tonumber(ARGV[#KEYS + 1]),
-    tonumber(ARGV[#KEYS + 2]),
-    tonumber(ARGV[#KEYS + 3])
+    ARGV[#KEYS + 2],
+    ARGV[#KEYS + 3]
 )
 `;
 
 /**
- * `KEYS[1]`: sorting leaderboard key  
- * `KEYS[2+]`: all feature keys  
- * `ARGV[1]`: entry id  
- * `ARGV[2]`: distance  
- * `ARGV[3]`: fill_borders ('true' or 'false')  
- * `ARGV[4]`: number of feature keys
+ * `KEYS`: leaderboard keys  
+ * `ARGV[1 .. #KEYS]`: sort policies for each leaderboard  
+ * `ARGV[#KEYS + 1]`: index of the leaderboard used to sort  
+ * `ARGV[#KEYS + 2]`: entry id  
+ * `ARGV[#KEYS + 3]`: distance  
+ * `ARGV[#KEYS + 4]`: fill_borders ('true' or 'false')  
  * 
- * Returns [ [id, id, id, ...], [score, score, score, ...] ]
- * 
- * TODO
+ * Returns an array of entries from `retrieveEntry`
  */
 const zmatrixaround = `
 ${aroundRange}
@@ -223,14 +226,13 @@ return retrieveEntries(
 /**
  * Defines multiple commands useful to manage leaderboards:
  * * `zbest` & `zrevbest`: replace the score of the specified member if it
- * doesn't exist or the provided score is (**lower** / **higher**)
- * than the old one. Returns the updated score
+ * doesn't exist or the provided score is (**lower** / **higher**) than the old one. Returns the updated score
  * * `zfind` & `zrevfind`: find the score and rank of a given member
  * * `zkeeptop` & `zrevkeeptop`: removes all members that are not in the top N
- * * `zaround` & `zrevaround`: return the entries around an entry in a defined
- * distance with a fill border policy
- * 
- * TODO: document when tests are done
+ * * `zaround`: return the entries around an entry in a defined distance with
+ * a fill border policy
+ * * `zmatrixfind`, `zmatrixrange` and `zmatrixaround`: equivalent to their
+ * non-matrix versions but using a matrix of leaderboards
  * 
  * @see https://github.com/luin/ioredis#lua-scripting
  * @param client the client to define the commands

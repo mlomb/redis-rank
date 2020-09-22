@@ -21,7 +21,7 @@ export type SortPolicy = 'high-to-low' | 'low-to-high';
  * 
  * When an update occurs...
  * * `replace`: the new score will replace the previous one
- * * `aggregate`: old and new scores will be added
+ * * `aggregate`: previous and new scores will be added
  * * `best`: the best score is kept (determined by the sort policy)
  */
 export type UpdatePolicy = 'replace' | 'aggregate' | 'best';
@@ -97,10 +97,10 @@ export class Leaderboard {
     }
 
     /**
-     * Retrieve the rank of an entry. If it doesn't exist, it returns null.
+     * Retrieve the rank of an entry. If it doesn't exist, it returns null
      * 
      * Complexity: `O(log(N))` where N is the number of entries in the
-     *             leaderboard
+     * leaderboard
      * 
      * @param id entry id
      */
@@ -112,10 +112,10 @@ export class Leaderboard {
     }
 
     /**
-     * Retrieve an entry. If it doesn't exist, it returns null.
+     * Retrieve an entry. If it doesn't exist, it returns null
      * 
      * Complexity: `O(log(N))` where N is the number of entries in the
-     *             leaderboard
+     * leaderboard
      * 
      * @param id entry id
      */
@@ -135,10 +135,10 @@ export class Leaderboard {
 
     /**
      * Retrieve an entry at a specific rank. If the rank is out of bounds,
-     * it returns null.
+     * it returns null
      * 
      * Complexity: `O(log(N))` where N is the number of entries in the
-     *             leaderboard
+     * leaderboard
      * 
      * Note: This function is an alias for list(rank, rank)[0]
      * 
@@ -187,9 +187,17 @@ export class Leaderboard {
 
         let pipeline = this.client.pipeline();
         this.updatePipe(entries, pipeline, updatePolicy);
-        return (await this.execPipelineAndLimit(pipeline)).map(parseFloat);
+        let limited = this.limitPipe(pipeline);
+        let result = await Leaderboard.execPipeline(pipeline);
+        return (limited ? result.slice(0, -1) : result).map(parseFloat);
     }
 
+    /**
+     * Applies the limit top N restriction (if enabled)
+     * 
+     * @param pipeline ioredis pipeline
+     * @returns if the leaderboard has `limitTopN` enabled
+     */
     limitPipe(pipeline: Pipeline): boolean {
         let limited = (this.options.limitTopN && this.options.limitTopN > 0) as boolean;
         if(limited) {
@@ -203,16 +211,10 @@ export class Leaderboard {
         return limited;
     }
 
-    private async execPipelineAndLimit(pipeline: Pipeline) {
-        let limited = this.limitPipe(pipeline);
-        let result = await Leaderboard.execPipeline(pipeline);
-        return limited ? result.slice(0, -1) : result;
-    }
-
     /**
-     * Uses IORedis.Pipeline to batch multiple redis commands
+     * Uses IORedis.Pipeline to batch multiple Redis commands
      * 
-     * Note: this method alone will not honor `limitTopN`
+     * Note: this method alone will not honor `limitTopN` (use `limitPipe`)
      * 
      * @see update  
      * @param entries list of entries to update
@@ -263,7 +265,7 @@ export class Leaderboard {
      * Retrieve entries between ranks
      * 
      * Complexity: `O(log(N)+M)` where N is the number of entries in the
-     *             leaderboard and M the number of entries returned
+     * leaderboard and M the number of entries returned
      * 
      * @param lower lower bound to query (inclusive)
      * @param upper upper bound to query (inclusive)
@@ -293,7 +295,7 @@ export class Leaderboard {
      * Retrieve the top entries
      * 
      * Complexity: `O(log(N)+M)` where N is the number of entries in the
-     *             leaderboard and M is `max`
+     * leaderboard and M is `max`
      * 
      * Note: This function is an alias for list(1, max)
      * 
@@ -307,7 +309,7 @@ export class Leaderboard {
      * Retrieve the bottom entries (from worst to better)
      * 
      * Complexity: `O(log(N)+M)` where N is the number of entries in the
-     *             leaderboard and M is `max`
+     * leaderboard and M is `max`
      * 
      * @param max number of entries to return
      */
@@ -353,7 +355,7 @@ export class Leaderboard {
      * ```
      * 
      * Complexity: `O(log(N)+M)` where N is the number of entries in the
-     *             leaderboard and M is 2*`distance`+1
+     * leaderboard and M is 2*`distance`+1
      * 
      * @param id id of the entry at the center
      * @param distance number of entries at each side of the queried entry
@@ -426,6 +428,12 @@ export class Leaderboard {
         return this.options.updatePolicy;
     }
 
+    /**
+     * Executes a IORedis.Pipeline, throws if any command resulted in error.
+     * 
+     * @param pipeline ioredis pipeline
+     * @returns array of each command result
+     */
     static async execPipeline(pipeline: Pipeline): Promise<any[]> {
         let outputs = await pipeline.exec();
         let results = [];

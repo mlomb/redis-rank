@@ -55,7 +55,7 @@ const getWeekNumber = (time: Date) => Math.floor((time.getTime() + 345600000 - m
 
 /**
  * Note: default functions use local time to determine keys.  
- * Tip: You can specify a `now` function in the periodic leaderboard options
+ * Tip: You can specify the `now()` function in the periodic leaderboard options
  * to offset the time however you like.
  */
 const CYCLE_FUNCTIONS: { [cycle in DefaultCycles]: CycleFunction } = {

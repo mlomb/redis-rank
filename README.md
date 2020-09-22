@@ -72,7 +72,7 @@ Continue reading for a TL;DR, or [jump to the full documentation](API.md).
 
 # TL;DR
 
-Ranks are 1-based.  
+Ranks are 1-based. Almost every function returns a [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise).  
 The detailed API documentation can be found in [API.md](API.md).
 
 ### Leaderboard
@@ -86,34 +86,34 @@ let lb = new Leaderboard(client, 'lb:my-leaderboard', {
 });
 
 // insert/update (if it doesn't exist, it will be created)
-await lb.updateOne("player-1", 123);
-await lb.update({ id: "player-1", value: 123 });
-await lb.update([
+lb.updateOne("player-1", 123);
+lb.update({ id: "player-1", value: 123 });
+lb.update([
     { id: "player-1", value: 123 },
     { id: "player-2", value: 420 },
     { id: "player-3", value: 696 }
 ]);
-await lb.update({ id: "player-1", value: 123 }, 'replace'); // override the default update policy
+lb.update({ id: "player-1", value: 123 }, 'replace'); // override the default update policy
 
 // remove
-await lb.remove("player-1");
-await lb.remove(["player-1", "player-2", "player-3"]);
-await lb.clear(); // remove all
+lb.remove("player-1");
+lb.remove(["player-1", "player-2", "player-3"]);
+lb.clear(); // remove all
 
 // find (null if not found)
-await lb.score("player-1"); /// === 123
-await lb.rank("player-1"); /// === 3
-await lb.find("player-1"); /// === { id: "player-1", score: 123, rank: 3 }
-await lb.at(3); /// === { id: "player-1", score: 123, rank: 3 }
+lb.score("player-1"); /// === 123
+lb.rank("player-1"); /// === 3
+lb.find("player-1"); /// === { id: "player-1", score: 123, rank: 3 }
+lb.at(3); /// === { id: "player-1", score: 123, rank: 3 }
 
 // query
-await lb.top(10); /// === [{ id: "n1", score: 999, rank: 1 }, ... 9 more]
-await lb.bottom(10); /// === [{ id: "n10", score: 111, rank: 10 }, ... 9 more]
-await lb.list(100, 200); /// === [{ id: "n100", score: 100, rank: 100 }, ... 100 more]
-await lb.around("player-1", 4); /// === [... 4 more, { id: "player-1", score: 100, rank: 5 }, ... 4 more]
+lb.top(10); /// === [{ id: "n1", score: 999, rank: 1 }, ... 9 more]
+lb.bottom(10); /// === [{ id: "n10", score: 111, rank: 10 }, ... 9 more]
+lb.list(100, 200); /// === [{ id: "n100", score: 100, rank: 100 }, ... 100 more]
+lb.around("player-1", 4); /// === [... 4 more, { id: "player-1", score: 100, rank: 5 }, ... 4 more]
 
 // misc
-await lb.count(); /// === 3
+lb.count(); /// === 3
 ```
 
 # Running tests

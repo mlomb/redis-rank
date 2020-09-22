@@ -197,7 +197,7 @@ export class LeaderboardMatrix {
     }
 
     /**
-     * Retrieve an entry. If it doesn't exist, it returns null.
+     * Retrieve an entry. If it doesn't exist, it returns null
      * 
      * @param id entry id
      * @param filter filter to apply
