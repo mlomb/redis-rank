@@ -23,8 +23,8 @@
 * **Performance**: guaranteed _at most_ one trip to Redis on each function call, taking advantage of [ioredis's pipelining](https://github.com/luin/ioredis#pipelining) and [Lua scripts](https://redis.io/commands/eval)
 * **Drop-in replacement**: use any existing sorted set
 * **Clear interface**: based on [promises](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise) and provides [TypeScript](https://www.typescriptlang.org) definitions
-* **Periodic leaderboards**: create recurring leaderboards (_daily_, _weekly_, _monthly_, custom, etc)
-* **Combine leaderboards**: create a matrix of leaderboards, query one and retrieve multiple, all in a single call
+* **Periodic leaderboards**: create recurring leaderboards with presets (_minute_, _hourly_, _daily_, _weekly_, _monthly_, _yearly_) or use a custom cycle
+* **Combine leaderboards**: create a matrix of leaderboards: query, filter and retrieve multiple entries, all in a single call
 * **Export**: export your leaderboards for long-term storage
 * **Tested**: 100% code coverage
 
@@ -81,7 +81,7 @@ The detailed API documentation can be found in [API.md](API.md).
 // create
 let lb = new Leaderboard(client, 'lb:my-leaderboard', {
   sortPolicy: 'high-to-low', // or 'low-to-high'
-  updatePolicy: 'replace' // or 'aggregate' or 'best'
+  updatePolicy: 'best' // or 'aggregate' or 'best'
   // limitTopN: 1000 // only keep top N entries
 });
 
@@ -93,6 +93,7 @@ await lb.update([
     { id: "player-2", value: 420 },
     { id: "player-3", value: 696 }
 ]);
+await lb.update({ id: "player-1", value: 123 }, 'replace'); // override the default update policy
 
 // remove
 await lb.remove("player-1");
