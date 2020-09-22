@@ -154,7 +154,7 @@ export class LeaderboardMatrix {
      * @param max max number of entries to return
      */
     top(dimensionToSort: DimensionName, featureToSort: FeatureName, max: number = 10, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry[]> {
-        return this.list(dimensionToSort, featureToSort, 1, max);
+        return this.list(dimensionToSort, featureToSort, 1, max, filter);
     }
 
     /**
@@ -188,6 +188,13 @@ export class LeaderboardMatrix {
         let sortLb = this.getLeaderboard(dimensionToSort, featureToSort);
         if(!sortLb)
             return Promise.resolve([]);
+
+        // Check: the sort leaderboard must be in the filter list
+        if(filter.dimensions?.length && !filter.dimensions.includes(dimensionToSort))
+            filter.dimensions.push(dimensionToSort);
+        if(filter.features?.length && !filter.features.includes(featureToSort))
+            filter.features.push(featureToSort);
+
         return this.execMatrix(fnName, filter, sortLb.redisKey as string, ...args);
     }
 
@@ -237,19 +244,26 @@ export class LeaderboardMatrix {
         };
         
         for(let dim of info.dimensions) {
+            let empty = true;
             let scores: { [feature: string]: Score } = {};
             let ranks: { [feature: string]: Rank } = {};
 
             for(let feat of info.features) {
-                scores[feat] = parseFloat(data[i++]);
-                ranks[feat] = parseInt(data[i++]) + 1;
+                let score = parseFloat(data[i++]);
 
-                if(!valid && !isNaN(ranks[feat]))
+                if(!isNaN(score)) {
+                    scores[feat] = score;
+                    ranks[feat] = parseInt(data[i++]) + 1;
                     valid = true;
+                    empty = false;
+                } else
+                    i++; // skip null score
             }
 
-            result.scores[dim] = scores;
-            result.ranks[dim] = ranks;
+            if(!empty) {
+                result.scores[dim] = scores;
+                result.ranks[dim] = ranks;
+            }
         }
 
         return valid ? result : null;

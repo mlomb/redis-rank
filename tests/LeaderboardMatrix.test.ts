@@ -3,7 +3,8 @@ import {
     LeaderboardMatrix,
     MatrixEntry,
     MatrixEntryUpdateQuery,
-    PeriodicLeaderboard
+    MatrixLeaderboardQueryFilter,
+    PeriodicLeaderboard,
 } from '../lib/index';
 import rc from './redis';
 
@@ -127,18 +128,19 @@ describe("LeaderboardMatrix", () => {
                 expect(baz).toMatchObject(baz_correct);
             });
             
-            test("list (top)", async () => {
-                let results = await mlb.top("dim1", "feat1", 10);
+            test("list", async () => {
+                let results = await mlb.list("dim1", "feat1", 1, 100);
                 expect(results).toHaveLength(FOO_BAR_BAZ.length);
                 expect(results[0]).toMatchObject(baz_correct);
                 expect(results[1]).toMatchObject(bar_correct);
                 expect(results[2]).toMatchObject(foo_correct);
+                expect(results).toMatchObject(await mlb.top("dim1", "feat1"));
             });
             
             test("around", async () => {
-                expect(await mlb.around("dim1", "feat1", "foo", 0, false)).toHaveLength(1);
-                expect(await mlb.around("dim1", "feat1", "foo", 1, false)).toHaveLength(2);
-                expect(await mlb.around("dim1", "feat1", "foo", 2, false)).toHaveLength(3);
+                expect(await mlb.around("dim1", "feat1", "foo", 0)).toHaveLength(1); // fillBorders = false
+                expect(await mlb.around("dim1", "feat1", "foo", 1)).toHaveLength(2); // fillBorders = false
+                expect(await mlb.around("dim1", "feat1", "foo", 2)).toHaveLength(3); // fillBorders = false
 
                 expect(await mlb.around("dim1", "feat1", "foo", 0, true)).toHaveLength(1);
                 expect(await mlb.around("dim1", "feat1", "foo", 1, true)).toHaveLength(3);
@@ -151,13 +153,133 @@ describe("LeaderboardMatrix", () => {
                 expect(results[2]).toMatchObject(foo_correct);
             });
         });
-    });
-
-    describe("filters", () => {
-        test("update", async () => {
-
+        
+        test("update filter features", async () => {
+            await mlb.update({
+                id: "foo",
+                values: {
+                    feat1: 99
+                    // don't update feat2
+                }
+            });
+            let foo = await mlb.find("foo");
+            expect(foo).not.toBe(null);
+            for(let dim of ['dim1', 'dim2']) {
+                expect(foo!.scores[dim].feat1).toBe(99);
+                expect(foo!.scores[dim].feat2).toBe(undefined);
+            }
+        });
+        
+        test("update filter dimensions", async () => {
+            await mlb.update({
+                id: "foo",
+                values: {
+                    feat1: 99,
+                    feat2: 123
+                }
+            }, ["dim1"]); // only update dim1
+            let foo = await mlb.find("foo");
+            expect(foo).not.toBe(null);
+            expect(foo!.scores.dim1.feat1).toBe(99);
+            expect(foo!.scores.dim1.feat2).toBe(123);
+            expect(foo!.scores.dim2).toBe(undefined);
         });
 
+        describe("filter queries", () => {
+            beforeEach(async () => {
+                await mlb.update(FOO_BAR_BAZ);
+            });
+
+            const filter: MatrixLeaderboardQueryFilter = {
+                dimensions: ["dim1"],
+                features: ["feat2"]
+            };
+
+            function checkFilter(entry: MatrixEntry | null) {
+                expect(entry).not.toBeNull();
+                expect(entry!.scores.dim1).not.toBeUndefined();
+                expect(entry!.scores.dim2).toBeUndefined();
+                expect(entry!.ranks.dim1).not.toBeUndefined();
+                expect(entry!.ranks.dim2).toBeUndefined();
+                
+                expect(entry!.scores.dim1.feat1).toBeUndefined();
+                expect(entry!.scores.dim1.feat2).not.toBeUndefined();
+                expect(entry!.ranks.dim1.feat1).toBeUndefined();
+                expect(entry!.ranks.dim1.feat2).not.toBeUndefined();
+            }
+        
+            test("find", async () => {
+                checkFilter(await mlb.find("foo", filter));
+            });
+            
+            test("list (top)", async () => {
+                let results = await mlb.top("dim1", "feat2", 10, filter);
+                for(let e of results)
+                    checkFilter(e);
+            });
+
+            test("around", async () => {
+                let results = await mlb.around("dim1", "feat2", "foo", 10, true, filter);
+                for(let e of results)
+                    checkFilter(e);
+            });
+            
+            test("should include the sorting pair", async () => {
+                let results = await mlb.around("dim2", "feat1", "foo", 10, true, filter); // note we're querying dim2/feat1
+                for(let entry of results) {
+                    // the dimension/feature pair cannot be filtered
+
+                    expect(entry.scores.dim1).not.toBeUndefined();
+                    expect(entry.scores.dim2).not.toBeUndefined();
+                    expect(entry.scores.dim1.feat1).not.toBeUndefined();
+                    expect(entry.scores.dim1.feat2).not.toBeUndefined();
+                    expect(entry.scores.dim2.feat1).not.toBeUndefined();
+                    expect(entry.scores.dim2.feat2).not.toBeUndefined();
+                }
+            });
+            
+            test("empty filter", async () => {
+                expect(await mlb.find("foo", { dimensions: [] })).toBeNull();
+                expect(await mlb.find("foo", { features: [] })).toBeNull();
+                expect(await mlb.find("foo", { dimensions: [], features: [] })).toBeNull();
+            });
+        });
+        
+        test("invalid updates", async () => {
+            await mlb.update({
+                id: "foo",
+                values: {
+                    feat1: 5,
+                    badcoffe: 6
+                }
+            }, ["invalid", "dim1"]);
+            // only feat1 on dim1 should be updated
+            let foo = await mlb.find("foo");
+            expect(foo!.scores.dim1.feat1).toBe(5);
+            expect(foo!.scores.invalid).toBe(undefined);
+        });
+
+        describe("invalid queries", () => {
+            beforeEach(async () => {
+                await mlb.update(FOO_BAR_BAZ);
+            });
+            
+            test("invalid find", async () => {
+                expect(await mlb.find("invalid")).toBeNull();
+            });
+
+            test("invalid list", async () => {
+                expect(await mlb.list("bad", "feat1", 1, 100)).toHaveLength(0);
+                expect(await mlb.list("dim1", "bad", 1, 100)).toHaveLength(0);
+                expect(await mlb.list("dim1", "feat1", 100, 1)).toHaveLength(0);
+            });
+
+            test("invalid list", async () => {
+                expect(await mlb.around("bad", "feat1", "foo", 10)).toHaveLength(0);
+                expect(await mlb.around("dim1", "bad", "foo", 10)).toHaveLength(0);
+                expect(await mlb.around("dim1", "feat1", "bad", 10)).toHaveLength(0);
+            });
+        });
     });
 
     test("periodic leaderboards", async () => {

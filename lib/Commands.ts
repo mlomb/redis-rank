@@ -59,7 +59,7 @@ local function aroundRange(path, id, distance, fill_borders, sort_dir)
 
     if r == false or r == nil then
         -- entry does not exist
-        return { -1, -1 }
+        return { -1, -1, -1, -1 }
     end
     
     local c = redis.call('zcard', path) -- lb size
@@ -210,6 +210,7 @@ local range = aroundRange(
     ARGV[sortIndex]
 )
 
+if range[1] == -1 then return { } end
 return retrieveEntries(
     KEYS,
     ARGV,
