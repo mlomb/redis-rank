@@ -247,7 +247,7 @@ export class Leaderboard {
     async remove(ids: ID | ID[]): Promise<void> {
         await this.client.zrem(this.key, ids);
     }
-    
+
     /**
      * Remove all the entries from the leaderboard
      * 

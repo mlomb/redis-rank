@@ -116,20 +116,20 @@ describe("Leaderboard", () => {
             });
 
             test("score null", async () => {
-                expect(await lb.score("fail")).toBe(null);
+                expect(await lb.score("fail")).toBeNull();
             });
             
             test("rank null", async () => {
-                expect(await lb.rank("fail")).toBe(null);
+                expect(await lb.rank("fail")).toBeNull();
             });
             
             test("find null", async () => {
-                expect(await lb.find("fail")).toBe(null);
+                expect(await lb.find("fail")).toBeNull();
             });
 
             test("at null", async () => {
-                expect(await lb.at(-100)).toBe(null);
-                expect(await lb.at(100000)).toBe(null);
+                expect(await lb.at(-100)).toBeNull();
+                expect(await lb.at(100000)).toBeNull();
             });
         });
     });

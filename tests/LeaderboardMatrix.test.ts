@@ -53,8 +53,8 @@ describe("LeaderboardMatrix", () => {
         });
 
         test("expect invalid leaderboards", async () => {
-            expect(mlb.getLeaderboard("bad", "feat1")).toBe(null);
-            expect(mlb.getLeaderboard("dim1", "bad")).toBe(null);
+            expect(mlb.getLeaderboard("bad", "feat1")).toBeNull();
+            expect(mlb.getLeaderboard("dim1", "bad")).toBeNull();
         });
 
         test("update single", async () => {
@@ -163,7 +163,7 @@ describe("LeaderboardMatrix", () => {
                 }
             });
             let foo = await mlb.find("foo");
-            expect(foo).not.toBe(null);
+            expect(foo).not.toBeNull();
             for(let dim of ['dim1', 'dim2']) {
                 expect(foo!.scores[dim].feat1).toBe(99);
                 expect(foo!.scores[dim].feat2).toBe(undefined);
@@ -179,7 +179,7 @@ describe("LeaderboardMatrix", () => {
                 }
             }, ["dim1"]); // only update dim1
             let foo = await mlb.find("foo");
-            expect(foo).not.toBe(null);
+            expect(foo).not.toBeNull();
             expect(foo!.scores.dim1.feat1).toBe(99);
             expect(foo!.scores.dim1.feat2).toBe(123);
             expect(foo!.scores.dim2).toBe(undefined);
@@ -278,6 +278,54 @@ describe("LeaderboardMatrix", () => {
                 expect(await mlb.around("bad", "feat1", "foo", 10)).toHaveLength(0);
                 expect(await mlb.around("dim1", "bad", "foo", 10)).toHaveLength(0);
                 expect(await mlb.around("dim1", "feat1", "bad", 10)).toHaveLength(0);
+            });
+        });
+
+        describe("remove", () => {
+            beforeEach(async () => {
+                await mlb.update(FOO_BAR_BAZ);
+                expect(await mlb.find("foo")).not.toBeNull();
+                expect(await mlb.find("bar")).not.toBeNull();
+                expect(await mlb.find("baz")).not.toBeNull();
+            });
+
+            test("single", async () => {
+                await mlb.remove("foo");
+                expect(await mlb.find("foo")).toBeNull();
+                expect(await mlb.find("bar")).not.toBeNull();
+                expect(await mlb.find("baz")).not.toBeNull();
+            });
+
+            test("multiple", async () => {
+                await mlb.remove(["foo", "bar"]);
+                expect(await mlb.find("foo")).toBeNull();
+                expect(await mlb.find("bar")).toBeNull();
+                expect(await mlb.find("baz")).not.toBeNull();
+            });
+
+            test("remove filtered dimension", async () => {
+                await mlb.remove("foo", ["dim1"]);
+                let foo = await mlb.find("foo");
+                expect(foo).not.toBeNull();
+                expect(foo!.scores.dim1).toBeUndefined();
+                expect(foo!.scores.dim2).not.toBeUndefined();
+            });
+
+            test("remove filtered feature", async () => {
+                await mlb.remove("foo", undefined, ["feat1"]);
+                let foo = await mlb.find("foo");
+                expect(foo).not.toBeNull();
+                expect(foo!.scores.dim1.feat1).toBeUndefined();
+                expect(foo!.scores.dim1.feat2).not.toBeUndefined();
+                expect(foo!.scores.dim2.feat1).toBeUndefined();
+                expect(foo!.scores.dim2.feat2).not.toBeUndefined();
+            });
+            
+            test("invalid are ignored", async () => {
+                await mlb.remove("foo", ["invalid"]);
+                expect(await mlb.find("foo")).not.toBeNull();
+                await mlb.remove("foo", undefined, ["invalid"]);
+                expect(await mlb.find("foo")).not.toBeNull();
             });
         });
     });

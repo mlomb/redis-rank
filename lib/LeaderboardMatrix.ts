@@ -165,8 +165,28 @@ export class LeaderboardMatrix {
         return Leaderboard.execPipeline(pipeline);
     }
 
-    remove(ids: ID | ID[], dimensions?: DimensionName[], features?: FeatureName[]) {
-        
+    /**
+     * Remove one or more entries from the leaderboards
+     * 
+     * @param ids ids to remove
+     * @param dimensions dimensions to remove from. If empty or undefined, entries will be removed from all dimensions
+     * @param features features to remove from. If empty or undefined, entries will be removed from all features
+     */
+    async remove(ids: ID | ID[], dimensions?: DimensionName[], features?: FeatureName[]) {
+        dimensions = !dimensions || dimensions.length === 0 ? this.allDimensions : dimensions;
+        features = !features || features.length === 0 ? this.allFeatures : features;
+
+        let pipeline = this.client.pipeline();
+
+        for(let dim of dimensions) {
+            for(let feat of features) {
+                let lb = this.getLeaderboard(dim, feat);
+                if(lb)
+                    pipeline.zrem(lb.redisKey, ids);
+            }
+        }
+
+        await pipeline.exec();
     }
 
     /**
