@@ -216,7 +216,7 @@ export class LeaderboardMatrix {
      * @param upper upper bound to query (inclusive)
      * @param filter filter to apply
      */
-    async list(dimensionToSort: DimensionName, featureToSort: FeatureName, lower: Rank, upper: Rank, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry[]> {
+    list(dimensionToSort: DimensionName, featureToSort: FeatureName, lower: Rank, upper: Rank, filter: MatrixLeaderboardQueryFilter = {}): Promise<MatrixEntry[]> {
         return this.execMatrixSort(
             'zmatrixrange',
             filter,

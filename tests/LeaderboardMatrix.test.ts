@@ -45,14 +45,14 @@ describe("LeaderboardMatrix", () => {
             });
         });
 
-        test("expect correct leaderboards", async () => {
+        test("expect correct leaderboards", () => {
             expect(mlb.getLeaderboard("dim1", "feat1")).toBeInstanceOf(Leaderboard);
             expect(mlb.getLeaderboard("dim1", "feat2")).toBeInstanceOf(Leaderboard);
             expect(mlb.getLeaderboard("dim2", "feat1")).toBeInstanceOf(Leaderboard);
             expect(mlb.getLeaderboard("dim2", "feat2")).toBeInstanceOf(Leaderboard);
         });
 
-        test("expect invalid leaderboards", async () => {
+        test("expect invalid leaderboards", () => {
             expect(mlb.getLeaderboard("bad", "feat1")).toBeNull();
             expect(mlb.getLeaderboard("dim1", "bad")).toBeNull();
         });
@@ -397,7 +397,7 @@ describe("LeaderboardMatrix", () => {
         expect(await mlb.top("dim1", "feat1")).toHaveLength(2);
     });
 
-    test("periodic leaderboards", async () => {
+    test("periodic leaderboards", () => {
         const reference_date = new Date();
 
         mlb = new LeaderboardMatrix(rc, TEST_KEY, {
