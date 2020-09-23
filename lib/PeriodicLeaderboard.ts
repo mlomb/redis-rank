@@ -54,17 +54,33 @@ const msTimezoneOffset = new Date().getTimezoneOffset() * 60 * 1000;
 const getWeekNumber = (time: Date) => Math.floor((time.getTime() + 345600000 - msTimezoneOffset) / 604800000);
 
 /**
+ * Pad a number with leading zeroes
+ * 
+ * @param input the number
+ * @param digits number of digits
+ */
+const padNumber = (input: number, digits: number = 2) => (input+'').padStart(digits, '0');
+
+/**
  * Note: default functions use local time to determine keys.  
  * Tip: You can specify the `now()` function in the periodic leaderboard options
  * to offset the time however you like.
+ * 
+ * Examples:
+ * * `yearly`: `y2020`
+ * * `weekly`: `y2020-w2650` (week number since epoch)
+ * * `monthly`: `y2020-m05`
+ * * `daily`: `y2020-m05-d15`
+ * * `hourly`: `y2020-m05-d15-h22`
+ * * `minute`: `y2020-m05-d15-h22-m53`
  */
 const CYCLE_FUNCTIONS: { [cycle in DefaultCycles]: CycleFunction } = {
     'yearly':   (time: Date) => `y${time.getFullYear()}`,
-    'weekly':   (time: Date) => `y${time.getFullYear()}-w${getWeekNumber(time)}`,
-    'monthly':  (time: Date) => `y${time.getFullYear()}-m${time.getMonth()}`,
-    'daily':    (time: Date) => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}`,
-    'hourly':   (time: Date) => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}-h${time.getHours()}`,
-    'minute':   (time: Date) => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}-h${time.getHours()}-m${time.getMinutes()}`,
+    'weekly':   (time: Date) => `${CYCLE_FUNCTIONS['yearly'] (time)}-w${padNumber(getWeekNumber(time), 4)}`,
+    'monthly':  (time: Date) => `${CYCLE_FUNCTIONS['yearly'] (time)}-m${padNumber(time.getMonth())}`,
+    'daily':    (time: Date) => `${CYCLE_FUNCTIONS['monthly'](time)}-d${padNumber(time.getDate())}`,
+    'hourly':   (time: Date) => `${CYCLE_FUNCTIONS['daily']  (time)}-h${padNumber(time.getHours())}`,
+    'minute':   (time: Date) => `${CYCLE_FUNCTIONS['hourly'] (time)}-m${padNumber(time.getMinutes())}`
 };
 
 export class PeriodicLeaderboard {
@@ -146,8 +162,24 @@ export class PeriodicLeaderboard {
         return this.getLeaderboard(this.getKeyNow());
     }
 
-    getExistingKeys(): PeriodicKey[] {
-        // TODO!
-        return [];
+    /**
+     * Returns all the active periodic keys in the database.  
+     * Use this function sparsely, it uses `scan` over the whole database to
+     * find matches.
+     * 
+     * Complexity: O(N) where N is the number of keys in the Redis database
+     */
+    getExistingKeys(): Promise<PeriodicKey[]> {
+        return new Promise((resolve, reject) => {
+            let stream = this.client.scanStream({
+                match: `${this.baseKey}:*`,
+                count: 100
+            });
+            let keys = new Set<string>();
+            const addKey = keys.add.bind(keys);
+            stream.on('data', (batch) => batch.map(addKey));
+            stream.on('error', reject);
+            stream.on('end', () => resolve(Array.from(keys).map(key => key.slice(this.baseKey.length + 1))));
+        })
     }
 }

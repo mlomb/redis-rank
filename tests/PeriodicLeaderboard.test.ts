@@ -111,7 +111,7 @@ describe("PeriodicLeaderboard", () => {
             cycle: 'minute',
             now: () => REFERENCE_DATE
         });
-        expect(plb.getKeyNow()).toBe(`y${REFERENCE_DATE.getFullYear()}-m${REFERENCE_DATE.getMonth()}-d${REFERENCE_DATE.getDate()}-h${REFERENCE_DATE.getHours()}-m${REFERENCE_DATE.getMinutes()}`);
+        expect(plb.getKeyNow()).toBe(`y2020-m00-d01-h00-m00`);
     });
 
     describe("cache leaderboard objects", () => {
@@ -145,5 +145,21 @@ describe("PeriodicLeaderboard", () => {
             expect(plbAny.leaderboards.size).toBeGreaterThan(10); // some
             expect(plbAny.leaderboards.size).toBeLessThan(101); // but not much
         });
+    });
+    
+    test("existing keys", async () => {
+        let h = 0;
+        plb = new PeriodicLeaderboard(rc, TEST_KEY, {
+            leaderboardOptions: lbOptions,
+            cycle: 'hourly',
+            now: () => new Date(2020, 1, 1, h++)
+        });
+        for(let i = 0; i < 1234; i++)
+            await plb.getLeaderboardNow().updateOne(`${Math.random()*10e8}`, Math.random()*10e8);
+        let keys = await plb.getExistingKeys();
+        expect(keys).toHaveLength(1234);
+        for(let key of keys)
+            await plb.getLeaderboard(key).clear();
+        expect(await plb.getExistingKeys()).toHaveLength(0);
     });
 });
