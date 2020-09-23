@@ -4,9 +4,9 @@ import {
     UpdatePolicy,
     Score,
     EntryUpdateQuery,
-    Entry
+    Entry,
+    LeaderboardOptions
 } from '../lib/index';
-import { Readable } from 'stream';
 import rc from './redis';
 
 const TEST_KEY = "lb";
@@ -345,6 +345,21 @@ describe("Leaderboard", () => {
         })
     });
     
+    describe("errors", () => {
+        beforeEach(() => {
+            lb = new Leaderboard(rc, TEST_KEY, (null as any) as LeaderboardOptions);
+        });
+
+        test("list", (done) => lb.list(1, 100).catch(_err => done()));
+        test("around", (done) => lb.around("foo", 10).catch(_err => done()));
+
+        test("export", (done) => {
+            let stream = lb.exportStream(100);
+            stream.on("data", () => expect(true).toBe(false));
+            stream.on("error", _err => done());
+        });
+    });
+
     describe("export", () => {
         beforeEach(async () => {
             lb = new Leaderboard(rc, TEST_KEY, {
@@ -362,6 +377,7 @@ describe("Leaderboard", () => {
 
             stream.on("data", (entries: Entry[]) => {
                 expect(entries.length).toBeLessThanOrEqual(batchSize);
+                expect(entries.length).toBeGreaterThan(0);
                 for(let entry of entries) {
                     idSet.add(entry.id);
                 }

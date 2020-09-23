@@ -32,6 +32,10 @@ export default class ExportStream extends Readable {
             if(entries.length < this.options.batchSize) {
                 // finished
                 this._Done = true;
+                if(entries.length === 0) {
+                    this.push(null);
+                    return;
+                }
             }
             this._Index += this.options.batchSize;
             this.push(entries);
