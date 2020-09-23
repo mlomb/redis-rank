@@ -14,23 +14,19 @@
   </a>
 </p>
 
-<h1 align="center">2.0 WORK IN PROGRESS</h1>
-
-*write something here*
-
 # Features
 * **Lightweight**: minimal dependencies, only [ioredis](https://github.com/luin/ioredis) is required
 * **Performance**: guaranteed _at most_ one trip to Redis on each function call, taking advantage of [ioredis's pipelining](https://github.com/luin/ioredis#pipelining) and [Lua scripts](https://redis.io/commands/eval)
-* **Drop-in replacement**: use any existing sorted set
-* **Clear interface**: based on [promises](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise) and provides [TypeScript](https://www.typescriptlang.org) definitions
-* **Periodic leaderboards**: create recurring leaderboards with presets (_minute_, _hourly_, _daily_, _weekly_, _monthly_, _yearly_) or use a custom cycle
-* **Combine leaderboards**: create a matrix of leaderboards: query, filter and retrieve multiple entries, all in a single call
+* **Drop-in replacement**: use any existing sorted set as a leaderboard
+* **Clear interface**: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)-based & provides [TypeScript](https://www.typescriptlang.org) definitions
+* **Periodic leaderboards**: create recurring leaderboards: _daily_, _weekly_, _monthly_, etc or use a custom cycle
+* **Combine leaderboards**: create a matrix of leaderboards: update, filter and retrieve multiple entries in a single call
 * **Export**: export your leaderboards for long-term storage
 * **Tested**: 100% code coverage
 
 # Quick Start
 
-## Install
+## ⚙️ Install
 
 ```shell
 $ npm install redis-rank ioredis
@@ -38,7 +34,7 @@ $ npm install redis-rank ioredis
 
 Redis 2.6.12 or newer is required. The package [ioredis](https://www.npmjs.com/package/ioredis) is a peer dependency and must be installed separately.
 
-## Import and connect
+## 🔗 Import and connect
 
 First import/require `ioredis` and `redis-rank`.
 
@@ -53,18 +49,13 @@ import { Redis } from 'ioredis';
 import { Leaderboard } from 'redis-rank';
 ```
 
-Now create a basic leaderboard.
-You will have to provide a [ioredis](https://github.com/luin/ioredis) connection object.
+You will have to provide a [ioredis](https://github.com/luin/ioredis) connection.
 See [here](https://github.com/luin/ioredis#connect-to-redis) for more information.
 
 ```javascript
-// setup connection
-let client = new Redis(); // see ioredis
-
-// create a leaderboard
-let lb = new Leaderboard(client, 'lb:test', {
-  sortPolicy: 'high-to-low',
-  updatePolicy: 'replace'
+let client = new Redis({
+  host: "127.0.0.1",
+  port: 6379
 });
 ```
 

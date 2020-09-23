@@ -9,22 +9,24 @@
   * [Remove entries]()
   * [Find entries]()
   * [List entries]()
+  * [Export]()
   * [Information]()
+
+Examples can be found in [EXAMPLES.md](EXAMPLES.md).
 
 ## Types
 
+Common types exposed by the API.
+
 * `ID`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)
 * `Score`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)
-* `Rank`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)
+* `Rank`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) 1-based
 * `SortPolicy`: `'high-to-low'` | `'low-to-high'`
 * `UpdatePolicy`: `'replace'` | `'aggregate'` | `'best'`
 * `Entry`:
   * `id`: [ID]() id
   * `score`: [Score]() score
   * `rank`: [Rank]() rank
-* `EntryUpdateQuery`:
-  * `id`: [ID]() id of the entry to update
-  * `value`: [Score]() | [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) score or amount to add
 
 ## Leaderboard
 
@@ -44,7 +46,7 @@ Plain and simple leaderboard. Ranks are 1-based.
   * `updatePolicy`: [UpdatePolicy]() determines what happens between old and new scores  
     Allowed values:
     * `'replace'`: the new score will replace the previous one
-    * `'aggregate'`: old and new scores will be added
+    * `'aggregate'`: previous and new scores will be added
     * `'best'`: the best score is kept (determined by the sort policy)
   * `limitTopN`?: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number): keep only the top N entries, determined by the sort policy.  
   This lets you limit the number of entries stored, thus saving memory.  
@@ -88,6 +90,9 @@ Note that when you update an entry that doesn't exist, it will be created, so up
 
 * `update(entries: EntryUpdateQuery | EntryUpdateQuery[], updatePolicy?: UpdatePolicy)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Score]()[] | void[]> update one or more entries  
   * `entries`: [EntryUpdateQuery]() | [EntryUpdateQuery]()[] entry or entries to update
+    * `EntryUpdateQuery`:
+      * `id`: [ID]() id of the entry to update
+      * `value`: [Score]() | [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) score or amount to add
   * `updatePolicy`?: [UpdatePolicy]() override the default update policy **only for this update**
 
   This method is very similar to `updateOne`, but it lets you update multiple entries in one go.
@@ -247,6 +252,23 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   #### Complexity
   `O(log(N)+M)` where N is the number of entries in the leaderboard and M is (2*`distance`+1)
 
+### Export
+
+* `exportStream(batchSize: number)`: [Readable](https://nodejs.org/api/stream.html#stream_class_stream_readable) create a readable stream to iterate all entries in the leaderboard
+  * `batchSize`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) number of entries to retrieve per iteration
+  #### Example
+  ```javascript
+  const stream = lb.exportStream(100);
+  stream.on("data", (entries) => {
+    // process entries
+    // note: (use pause and resume if you need to do async work, check out EXAMPLES.md)
+  });
+  stream.on("close", () => {
+    // done
+  });
+  ```
+  #### Complexity
+  `O(log(N)+M)` each iteration, where N is the number of entries in the leaderboard and M the batch size
 
 ### Information
 
@@ -255,3 +277,26 @@ Note that when you update an entry that doesn't exist, it will be created, so up
 * `redisKey`: [KeyType](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) sorted set key
 * `sortPolicy`: [SortPolicy]() sort policy
 * `updatePolicy`: [UpdatePolicy]() update policy
+
+## PeriodicLeaderboard
+
+This class does not extends `Leaderboard`. This class generates the appropiate `Leaderboard` instance for each period cycle.
+
+### Constructor
+
+#### Arguments
+
+* `client`: [Redis](https://github.com/luin/ioredis#connect-to-redis) connection object
+* `baseKey`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) prefix for all the leaderboards
+* `options`: [PeriodicLeaderboardOptions]() configuration
+  * `leaderboardOptions`: [LeaderboardOptions]() underlying leaderboard options
+  * `now`?: [NowFunction](): function to evaluate the current time
+    * `NowFunction`: `() =>` [Date](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date)
+
+
+
+#### Example
+
+```javascript
+asd
+```
