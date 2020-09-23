@@ -3,8 +3,10 @@ import {
     SortPolicy,
     UpdatePolicy,
     Score,
-    EntryUpdateQuery
+    EntryUpdateQuery,
+    Entry
 } from '../lib/index';
+import { Readable } from 'stream';
 import rc from './redis';
 
 const TEST_KEY = "lb";
@@ -341,5 +343,47 @@ describe("Leaderboard", () => {
                     expect(e.id).toBe(`n${id++}`);
             });
         })
+    });
+    
+    describe("export", () => {
+        beforeEach(async () => {
+            lb = new Leaderboard(rc, TEST_KEY, {
+                sortPolicy: 'high-to-low', // not relevant
+                updatePolicy: 'best', // not relevant
+            });
+            for(let i = 0; i < 1000; i++) {
+                await lb.updateOne(`n${i}`, Math.random() * 10e8);
+            }
+        });
+        
+        function checkExportStream(batchSize: number, done: jest.DoneCallback) {
+            let idSet = new Set();
+            let stream = lb.exportStream(batchSize);
+
+            stream.on("data", (entries: Entry[]) => {
+                expect(entries.length).toBeLessThanOrEqual(batchSize);
+                for(let entry of entries) {
+                    idSet.add(entry.id);
+                }
+            });
+            stream.on("end", () => {
+                expect(idSet.size).toBe(1000); // every entry should have been visited
+                done();
+            });
+        }
+
+        describe.each([69, 100, 420, 666, 1000, 10000])("batch size %i", (batchSize) => {
+            test("run", (done) => checkExportStream(batchSize, done));
+        });
+        
+        test("cancel", (done) => {
+            let stream = lb.exportStream(100);
+            stream.on("data", (entries: Entry[]) => {
+                stream.destroy();
+            });
+            stream.on("close", () => {
+                done();
+            });
+        });
     });
 });

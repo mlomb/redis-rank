@@ -1,5 +1,7 @@
+import { Readable, ReadableOptions } from 'stream';
 import { Redis, KeyType, Pipeline } from 'ioredis';
 import { extendRedisClient } from './Commands';
+import ExportStream from './ExportStream';
 
 /** Entry identifier */
 export type ID = string;
@@ -271,10 +273,13 @@ export class Leaderboard {
      * @param upper upper bound to query (inclusive)
      */
     async list(lower: Rank, upper: Rank): Promise<Entry[]> {
+        lower = Math.max(lower, 1);
+        upper = Math.max(upper, 1);
+
         let result = await this.client[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](
             this.key,
-            Math.max(lower, 1) - 1,
-            Math.max(upper, 1) - 1,
+            lower - 1,
+            upper - 1,
             'WITHSCORES'
         );
         let entries: Entry[] = [];
@@ -315,7 +320,7 @@ export class Leaderboard {
      */
     async bottom(max: number = 10): Promise<Entry[]> {
         let pipeline = this.client.pipeline();
-        pipeline.zcard(this.redisKey);
+        pipeline.zcard(this.key);
         pipeline[this.options.sortPolicy === 'low-to-high' ? 'zrange' : 'zrevrange'](
             this.key,
             -Math.max(1, max),
@@ -388,19 +393,21 @@ export class Leaderboard {
     }
 
     /**
-     * Use ZSCAN
-     * O(1) for each call. O(N) for a complete iteration.
+     * Create a readable stream to iterate all the entries in the leaderboard.
+     * Note that the stream guarantees to traverse all entries only if there
+     * are no updates during retrival.
+     * 
+     * Complexity: `O(log(N)+M)` each iteration, where N is the number of
+     * entries in the leaderboard and M the batch size
+     * 
+     * @param batchSize number of entries to retrieve per iteration
+     * @returns a stream to iterate every entry in the leaderboard (in batches)
      */
-    exportUnordered() {
-        
-    }
-
-    /**
-     * Use ZRANGE
-     * O(log(N)+M)
-     */
-    exportOrdered() {
-
+    exportStream(batchSize: number): Readable {
+        return new ExportStream({
+            batchSize: batchSize,
+            leaderboard: this
+        });
     }
 
     /**
