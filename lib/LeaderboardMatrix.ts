@@ -51,10 +51,17 @@ export type MatrixEntryUpdateQuery = {
     values: { [ feature: string ]: number | Score }
 }
 
+/** filter query results */
 export type MatrixLeaderboardQueryFilter = {
-    /** filter dimensions */
+    /**
+     * dimensions to include in the result. If undefined or empty,
+     * all dimensions will be included
+     */
     dimensions?: DimensionName[],
-    /** filter features */
+    /**
+     * features to include in the result. If undefined or empty,
+     * all features will be included
+     */
     features?: FeatureName[]
 };
 
@@ -80,7 +87,7 @@ export class LeaderboardMatrix {
      * Create a matrix of leaderboards
      * 
      * @param client ioredis client
-     * @param baseKey prefix for the redis key of all leaderboards in the matrix
+     * @param baseKey prefix for the Redis key of all leaderboards in the matrix
      * @param options leaderboard matrix options
      */
     constructor(client: Redis, baseKey: string, options: LeaderboardMatrixOptions) {
@@ -145,7 +152,8 @@ export class LeaderboardMatrix {
     /**
      * Update one or more entries. If one of the entries does not exists,
      * it will be created. The update behaviour is determined by the sort and
-     * update policies of each leaderboard in the matrix.
+     * update policies of each leaderboard in the matrix (or overriden
+     * by `updatePolicy`)
      * 
      * @param entries entry or list of entries to update
      * @param dimensions filter the update to only this dimensions. If empty or undefined, all dimensions will be updated

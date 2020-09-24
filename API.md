@@ -11,12 +11,24 @@
   * [List entries]()
   * [Export]()
   * [Information]()
+* [PeriodicLeaderboard]()
+  * [Constructor]()
+  * [Keys]()
+  * [Leaderboards]()
+* [LeaderboardMatrix]()
+  * [Types]()
+  * [Constructor]()
+  * [Leaderboards]()
+  * [Insert/update entries]()
+  * [Remove entries]()
+  * [Find entries]()
+  * [List entries]()
 
 Examples can be found in [EXAMPLES.md](EXAMPLES.md).
 
 ## Types
 
-Common types exposed by the API.
+Most common types exposed by the API.
 
 * `ID`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)
 * `Score`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)
@@ -27,6 +39,7 @@ Common types exposed by the API.
   * `id`: [ID]() id
   * `score`: [Score]() score
   * `rank`: [Rank]() rank
+* `PeriodicKey`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) uniquely identifies a cycle
 
 ## Leaderboard
 
@@ -55,10 +68,10 @@ Plain and simple leaderboard. Ranks are 1-based.
 #### Example
 
 ```javascript
-let lb = new Leaderboard(client, 'lb:my-leaderboard', {
+const lb = new Leaderboard(client, 'lb:test', {
   sortPolicy: 'high-to-low',
   updatePolicy: 'replace'
-  // limitTopN: 1000 (commented, no limit)
+  // limitTopN: 1000 (disabled, no limit)
 });
 ```
 
@@ -280,7 +293,10 @@ Note that when you update an entry that doesn't exist, it will be created, so up
 
 ## PeriodicLeaderboard
 
-This class does not extends `Leaderboard`. This class generates the appropiate `Leaderboard` instance for each period cycle.
+This class does not extends `Leaderboard`. This class generates the appropiate `Leaderboard` instance for each period cycle.  
+Each cycle (a unique Leaderboard) is identified by a `PeriodicKey` (a string).
+
+Every time you want to interact with the leaderboard, you need to retrieve the appropiate based on the current time and cycle function. When entering a new cycle, you'll receive the new leaderboard right away. Stale leaderboards can be retrieved with `getExistingKeys`.
 
 ### Constructor
 
@@ -290,13 +306,190 @@ This class does not extends `Leaderboard`. This class generates the appropiate `
 * `baseKey`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) prefix for all the leaderboards
 * `options`: [PeriodicLeaderboardOptions]() configuration
   * `leaderboardOptions`: [LeaderboardOptions]() underlying leaderboard options
+  * `cycle`: [PeriodicLeaderboardCycle]() = [CycleFunction]() | [DefaultCycles](): time cycle
+    * `DefaultCycles`: default cycles  
+    Allowed values:
+      * `minute`
+      * `hourly`
+      * `daily`
+      * `weekly`
+      * `monthly`
+      * `yearly`
+    * `CycleFunction`: `(time: Date) =>` [PeriodicKey]() takes a time and retruns the appropiate `PeriodicKey` for that time (internally the suffix for the Redis key).  
+    The key returned must be appropiate for local time (not UTC).  
+    See [EXAMPLES.md](EXAMPLES.md) for examples.
   * `now`?: [NowFunction](): function to evaluate the current time
     * `NowFunction`: `() =>` [Date](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date)
-
-
 
 #### Example
 
 ```javascript
-asd
+const plb = new PeriodicLeaderboard(client, "plb:test", {
+	leaderboardOptions: {
+		sortPolicy: 'high-to-low',
+		updatePolicy: 'replace'
+	},
+    cycle: 'monthly'
+});
 ```
+
+### Keys
+
+* `getKey(time: Date)`: [PeriodicKey]() get the periodic key at a specified date and time
+  * `time`: [Date](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date) the time
+
+* `getKeyNow()`: [PeriodicKey]() get the current leaderboard based on the time returned by `now()`
+
+* `getExistingKeys()`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[PeriodicKey]()[]> find all the active periodic keys in the database.  
+  Use this function sparsely, it uses `SCAN` over the whole database to find matches.  
+  ⚠️ I recommend having periodic leaderboards on a database index other than the main one if you plan to call this function a lot.
+  #### Complexity
+  `O(N)` where N is the number of keys in the Redis database
+
+### Leaderboards
+
+* `getLeaderboard(key: PeriodicKey)`: [Leaderboard]() get the leaderboard for the provided periodic key
+  * `key`: [PeriodicKey]() periodic key
+
+* `getLeaderboardAt(time?: Date)`: [Leaderboard]() get the leaderboard at the specified date and time
+  * `time`?: [Date](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date) the time
+
+  If `time` is not provided, it will use the time returned by `now()`
+
+* `getLeaderboardNow()`: [Leaderboard]() get the current leaderboard based on the time returned by `now()`
+
+## LeaderboardMatrix
+
+### Types
+Specific types used by LeaderboardMatrix
+
+* `DimensionName`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) dimension name in a matrix
+* `FeatureName`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) feature name in a matrix
+* `MatrixEntry`:
+  * `id`: [ID]() entry id
+  * `ranks`: `{ [dimension: string]: { [feature: string]: Rank } }` entry ranks
+  * `scores`: `{ [dimension: string]: { [feature: string]: Score } }` entry scores
+  
+* `MatrixLeaderboardQueryFilter`: filter query results
+  * `dimensions`?: [DimensionName]()[] dimensions to include in the result. If undefined or empty, all dimensions will be included
+  * `features`?: [FeatureName]()[] features to include in the result. If undefined or empty, all features will be included
+
+### Constructor
+
+#### Arguments
+
+* `client`: [Redis](https://github.com/luin/ioredis#connect-to-redis) connection object
+* `baseKey`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) prefix for the Redis key of all leaderboards in the matrix
+* `options`: [LeaderboardMatrixOptions]() configuration
+  * `dimensions`: [DimensionDefinition]()[] dimensions
+    * `DimensionDefinition`:
+      * `name`: [DimensionName]() dimension name (string)
+      * `cycle`?: [PeriodicLeaderboardCycle]() cycle if the dimension is periodic
+  * `features`: [FeatureDefinition]()[] features
+    * `FeatureDefinition`:
+      * `name`: [FeatureName]() feature name (string)
+      * `options`: [LeaderboardOptions]() feature's leaderboard options
+  * `now`?: [NowFunction](): function to evaluate the current time for periodic leaderboards
+
+#### Example
+
+```javascript
+const mlb = new LeaderboardMatrix(client, "mlb:test", {
+  dimensions: [
+    { name: "global" },
+    {
+      name: "per-month",
+      cycle: 'monthly'
+    }
+  ],
+  features: [{
+    name: "kills",
+    options: {
+      updatePolicy: 'replace',
+      sortPolicy: 'high-to-low'
+    }
+  }, {
+    name: "seconds",
+    options: {
+      updatePolicy: 'best',
+      sortPolicy: 'low-to-high'
+    }
+  }]
+});
+```
+
+### Leaderboards
+
+* `getLeaderboard(dimension: DimensionName, feature: FeatureName, time?: Date)`: [Leaderboard]() | `null` get a leaderboard in the matrix
+  * `dimension`: [DimensionName]() dimension name
+  * `feature`: [FeatureName]() feature name
+  * `time`?: [Date](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date) time (for periodic leaderboards). If not provided, `now()` will be used
+  
+  Note: returns null if the dimension/feature pair is invalid
+
+* `getRawLeaderboard(dimension: DimensionName, feature: FeatureName)`: [Leaderboard]() | [PeriodicLeaderboard]() | `null` get the raw leaderboard object
+  * `dimension`: [DimensionName]() dimension name
+  * `feature`: [FeatureName]() feature name
+  
+  The difference with `getLeaderboard` is that you get the underlying periodic leaderboard wrapper instead of a specific leaderboard of a periodic cycle.
+  
+### Insert/update entries
+
+Remember that insert/update is the same operation.
+
+* `update(entries: MatrixEntryUpdateQuery | MatrixEntryUpdateQuery[], dimensions?: DimensionName[], updatePolicy?: UpdatePolicy)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)&lt;any&gt; update one or more entries. If one of the entries does not exists, it will be created
+
+  * `entries`: [MatrixEntryUpdateQuery]() | [MatrixEntryUpdateQuery]()[] entry or list of entries to update
+    * `MatrixEntryUpdateQuery`:
+      * `id`: [ID]() entry id
+      * `values`: `{ [feature: string] : number | Score }` features to update
+  * `dimensions`?: [DimensionName]()[] filter the update to only this dimensions. If empty or undefined, all dimensions will be updated
+  * `updatePolicy`?: [UpdatePolicy]() override every default update policy **only for this update**
+
+  The update behaviour is determined by the sort and update policies of each leaderboard in the matrix (or overriden by `updatePolicy`)
+  #### Example
+  ```javascript
+  await mlb.update([{
+    id: "player-1",
+    values: {
+      kills: 27,
+      time: 427
+    }
+  }], ["global"]); // update only the global dimension
+  ```
+
+### Remove entries
+
+* `remove(ids: ID | ID[], dimensions?: DimensionName[], features?: FeatureName[])`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)&lt;void&gt; remove one or more entries from the leaderboards
+  * `ids`: [ID]() | [ID]()[] ids to remove
+  * `dimensions`?: [DimensionName]()[] dimensions to remove from. If empty or undefined, entries will be removed from all dimensions
+  * `features`?: [FeatureName]()[] features to remove from. If empty or undefined, entries will be removed from all features
+
+### Find entries
+
+* `find(ids: ID, filter?: MatrixLeaderboardQueryFilter)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[MatrixEntry]() | null> retrieve an entry. If it doesn't exist, it returns null
+  * `id`: [ID]() entry id
+  * `filter`: [MatrixLeaderboardQueryFilter]() filter to apply
+  #### Example
+  ```javascript
+  await mlb.find("player-1");
+  ```
+  ```javascript
+  {
+    id: "player-1",
+    ranks: {
+      global: {
+        kills: 1,
+        time: 1
+      }
+    },
+    scores: {
+     global: {
+       kills: 27,
+       time: 427
+     }
+   }
+  }
+  ```
+
+### List entries

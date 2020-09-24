@@ -29,10 +29,10 @@ export type PeriodicLeaderboardCycle = CycleFunction | DefaultCycles;
 export type PeriodicLeaderboardOptions = {
     /** underlying leaderboard options  */
     leaderboardOptions: LeaderboardOptions,
-    /** function to evaluate the current time */
-    now?: NowFunction,
     /** cycle */
-    cycle: PeriodicLeaderboardCycle
+    cycle: PeriodicLeaderboardCycle,
+    /** function to evaluate the current time */
+    now?: NowFunction
 }
 
 /**
@@ -163,11 +163,11 @@ export class PeriodicLeaderboard {
     }
 
     /**
-     * Returns all the active periodic keys in the database.  
-     * Use this function sparsely, it uses `scan` over the whole database to
+     * Find all the active periodic keys in the database.  
+     * Use this function sparsely, it uses `SCAN` over the whole database to
      * find matches.
      * 
-     * Complexity: O(N) where N is the number of keys in the Redis database
+     * Complexity: `O(N)` where N is the number of keys in the Redis database
      */
     getExistingKeys(): Promise<PeriodicKey[]> {
         return new Promise((resolve, reject) => {
