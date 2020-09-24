@@ -4,6 +4,7 @@
 
 * [Types]()
 * [Leaderboard]()
+  * [Types]()
   * [Constructor]()
   * [Insert/update entries]()
   * [Remove entries]()
@@ -12,6 +13,7 @@
   * [Export]()
   * [Information]()
 * [PeriodicLeaderboard]()
+  * [Types]()
   * [Constructor]()
   * [Keys]()
   * [Leaderboards]()
@@ -23,6 +25,7 @@
   * [Remove entries]()
   * [Find entries]()
   * [List entries]()
+  * [Information]()
 
 Examples can be found in [EXAMPLES.md](EXAMPLES.md).
 
@@ -35,15 +38,17 @@ Most common types exposed by the API.
 * `Rank`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) 1-based
 * `SortPolicy`: `'high-to-low'` | `'low-to-high'`
 * `UpdatePolicy`: `'replace'` | `'aggregate'` | `'best'`
-* `Entry`:
-  * `id`: [ID]() id
-  * `score`: [Score]() score
-  * `rank`: [Rank]() rank
-* `PeriodicKey`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) uniquely identifies a cycle
 
 ## Leaderboard
 
 Plain and simple leaderboard. Ranks are 1-based.
+
+### Types
+
+* `Entry`:
+  * `id`: [ID]() id
+  * `score`: [Score]() score
+  * `rank`: [Rank]() rank
 
 ### Constructor
 
@@ -298,6 +303,11 @@ Each cycle (a unique Leaderboard) is identified by a `PeriodicKey` (a string).
 
 Every time you want to interact with the leaderboard, you need to retrieve the appropiate based on the current time and cycle function. When entering a new cycle, you'll receive the new leaderboard right away. Stale leaderboards can be retrieved with `getExistingKeys`.
 
+### Types
+
+* `PeriodicKey`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) uniquely identifies a cycle
+* `NowFunction`: `() =>` [Date](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date)
+
 ### Constructor
 
 #### Arguments
@@ -319,17 +329,16 @@ Every time you want to interact with the leaderboard, you need to retrieve the a
     The key returned must be appropiate for local time (not UTC).  
     See [EXAMPLES.md](EXAMPLES.md) for examples.
   * `now`?: [NowFunction](): function to evaluate the current time
-    * `NowFunction`: `() =>` [Date](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date)
 
 #### Example
 
 ```javascript
 const plb = new PeriodicLeaderboard(client, "plb:test", {
-	leaderboardOptions: {
-		sortPolicy: 'high-to-low',
-		updatePolicy: 'replace'
-	},
-    cycle: 'monthly'
+  leaderboardOptions: {
+    sortPolicy: 'high-to-low',
+    updatePolicy: 'replace'
+  },
+  cycle: 'monthly'
 });
 ```
 
@@ -361,7 +370,6 @@ const plb = new PeriodicLeaderboard(client, "plb:test", {
 ## LeaderboardMatrix
 
 ### Types
-Specific types used by LeaderboardMatrix
 
 * `DimensionName`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) dimension name in a matrix
 * `FeatureName`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) feature name in a matrix
@@ -469,7 +477,7 @@ Remember that insert/update is the same operation.
 
 * `find(ids: ID, filter?: MatrixLeaderboardQueryFilter)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[MatrixEntry]() | null> retrieve an entry. If it doesn't exist, it returns null
   * `id`: [ID]() entry id
-  * `filter`: [MatrixLeaderboardQueryFilter]() filter to apply
+  * `filter`?: [MatrixLeaderboardQueryFilter]() filter to apply
   #### Example
   ```javascript
   await mlb.find("player-1");
@@ -493,3 +501,59 @@ Remember that insert/update is the same operation.
   ```
 
 ### List entries
+
+When you retrieve a list of entries, you must specify the dimension and feature you want to sort. Then the filter is applied and you can retrieve data from all other leaderboards in the matrix.
+
+* `list(dimensionToSort: DimensionName, featureToSort: FeatureName, lower: Rank, upper: Rank, filter?: MatrixLeaderboardQueryFilter)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[MatrixEntry]()[]> retrieve entries between ranks
+  * `dimensionToSort`: [DimensionName]() dimension to perform the sorting
+  * `featureToSort`: [FeatureName]() feature to perform the sorting
+  * `lower`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) lower bound to query (inclusive)
+  * `upper`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) upper bound to query (inclusive)
+  * `filter`?: [MatrixLeaderboardQueryFilter]() filter to apply
+
+* `top(dimensionToSort: DimensionName, featureToSort: FeatureName, max: number = 10, filter?: MatrixLeaderboardQueryFilter)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[MatrixEntry]()[]> retrieve the top entries
+  * `dimensionToSort`: [DimensionName]() dimension to perform the sorting
+  * `featureToSort`: [FeatureName]() feature to perform the sorting
+  * `max`?: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) max number of entries to return
+  * `filter`?: [MatrixLeaderboardQueryFilter]() filter to apply
+
+* `bottom(dimensionToSort: DimensionName, featureToSort: FeatureName, max: number = 10, filter?: MatrixLeaderboardQueryFilter)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[MatrixEntry]()[]> retrieve the bottom entries (from worst to better)
+  * `dimensionToSort`: [DimensionName]() dimension to perform the sorting
+  * `featureToSort`: [FeatureName]() feature to perform the sorting
+  * `max`?: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) max number of entries to return
+  * `filter`: [MatrixLeaderboardQueryFilter]() filter to apply
+
+* `around(dimensionToSort: DimensionName, featureToSort: FeatureName, id: ID, distance: number, fillBorders: boolean = false, filter?: MatrixLeaderboardQueryFilter)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[MatrixEntry]()[]> retrieve the entries around an entry
+  * `dimensionToSort`: [DimensionName]() dimension to perform the sorting
+  * `featureToSort`: [FeatureName]() feature to perform the sorting
+  * `id`: [ID]() id of the entry at the center
+  * `distance`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) number of entries at each side of the queried entry
+  * `fillBorders`?: [FeatureName]() include entries at the other side if the entry is too close to one of the borders
+  * `filter`?: [MatrixLeaderboardQueryFilter]() filter to apply
+
+  For details, see the simple leaderboard version of `around()`.
+
+* `showcase(dimensionOrder: DimensionName[], featureToSort: FeatureName, threshold: number, filter: MatrixLeaderboardQueryFilter)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[MatrixShowcase]() | null> returns the top `threshold` entries from a leaderboard that has at least `threshold` entries
+  * `dimensionOrder`: [DimensionName]()[] order to test the dimensions
+  * `featureToSort`: [FeatureName]() feature to perform the sorting
+  * `threshold`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) minimum number of entries that should be present in the leaderboard
+  * `filter`?: [MatrixLeaderboardQueryFilter]() filter to apply
+
+  The `dimensionOrder` defines the order to check the leaderboards, and `featureToSort` the feature (which is fixed).  
+  If no dimension meet the threshold, then the dimension with the highest number of entries will be used to query the entries.  
+  If all dimensions have 0 entries, then returns null
+  
+  Note: this function actually does two round trips to Redis!
+
+  #### Return
+  `MatrixShowcase`:
+    * `dimension`: [DimensionName]() dimension chosen
+    * `feature`: [FeatureName]() feature chosen
+    * `entries`: [MatrixEntry]()[] entries
+
+### Information
+
+* `count()`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[MatrixCount]()> retrieve the number of entries in each leaderboard 
+  #### Return
+  `MatrixCount`:
+    * `{ [dimension: string ]: { [feature: string]: number } }`

@@ -16,7 +16,7 @@
 
 # Features
 * **Lightweight**: minimal dependencies, only [ioredis](https://github.com/luin/ioredis) is required
-* **Performance**: guaranteed _at most_ one trip to Redis on each function call, taking advantage of [ioredis's pipelining](https://github.com/luin/ioredis#pipelining) and [Lua scripts](https://redis.io/commands/eval)
+* **Performance**: guaranteed _at most_ one trip to Redis on each function call*, taking advantage of [ioredis's pipelining](https://github.com/luin/ioredis#pipelining) and [Lua scripts](https://redis.io/commands/eval)
 * **Drop-in replacement**: use any existing sorted set as a leaderboard
 * **Clear interface**: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)-based & provides [TypeScript](https://www.typescriptlang.org) definitions
 * **Periodic leaderboards**: create recurring leaderboards: _daily_, _weekly_, _monthly_, etc or use a custom cycle
