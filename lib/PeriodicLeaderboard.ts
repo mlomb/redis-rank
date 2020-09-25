@@ -68,7 +68,7 @@ const padNumber = (input: number, digits: number = 2) => (input+'').padStart(dig
  * 
  * Examples:
  * * `yearly`: `y2020`
- * * `weekly`: `y2020-w2650` (week number since epoch)
+ * * `weekly`: `w2650` (week number since epoch)
  * * `monthly`: `y2020-m05`
  * * `daily`: `y2020-m05-d15`
  * * `hourly`: `y2020-m05-d15-h22`
@@ -76,7 +76,7 @@ const padNumber = (input: number, digits: number = 2) => (input+'').padStart(dig
  */
 const CYCLE_FUNCTIONS: { [cycle in DefaultCycles]: CycleFunction } = {
     'yearly':   (time: Date) => `y${time.getFullYear()}`,
-    'weekly':   (time: Date) => `${CYCLE_FUNCTIONS['yearly'] (time)}-w${padNumber(getWeekNumber(time), 4)}`,
+    'weekly':   (time: Date) => `w${padNumber(getWeekNumber(time), 4)}`,
     'monthly':  (time: Date) => `${CYCLE_FUNCTIONS['yearly'] (time)}-m${padNumber(time.getMonth())}`,
     'daily':    (time: Date) => `${CYCLE_FUNCTIONS['monthly'](time)}-d${padNumber(time.getDate())}`,
     'hourly':   (time: Date) => `${CYCLE_FUNCTIONS['daily']  (time)}-h${padNumber(time.getHours())}`,
