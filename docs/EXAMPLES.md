@@ -111,7 +111,7 @@ await lb.clear();
 
 Enough for an introduction!
 
------
+
 ## Exporting a leaderboard
 
 To export a Leaderboard, you call `exportStream(batchSize)` in a leaderboard object, which returns a [Readable stream](https://nodejs.org/api/stream.html#stream_readable_streams) that lets you iterate every entry in the leaderboard:
@@ -150,10 +150,10 @@ stream.on("data", async (entries) => {
 });
 ```
 
------
+
 ## Recurring leaderboards
 
-Let's say you want to create a leaderboard that "resets" each month (for custom cycles see the [custom cycles example](#Custom%20cycles)). I say "reset" in quotes because the previous Redis Key is not deleted or altered when a cycle ends (a month). A new key is generated for each cycle identified by a `PeriodicKey`. If you want to delete or export previous leaderboards see the [clean stale leaderboards example](Clean%20stale%20leaderboards).
+Let's say you want to create a leaderboard that "resets" each month (for custom cycles see the [custom cycles example](#custom-cycles)). I say "reset" in quotes because the previous Redis Key is not deleted or altered when a cycle ends (a month). A new key is generated for each cycle identified by a `CycleKey`. If you want to delete or export previous leaderboards see the [clean stale leaderboards example](#clean-stale-leaderboards).
 
 Create the periodic leaderboard:
 
@@ -173,41 +173,114 @@ Now you use `getLeaderboardNow` to get the leaderboard for the current cycle (mo
 const lb = plb.getLeaderboardNow();
 ```
 
-Now you can use `lb` as a regular leaderboard. You should call `getLeaderboardNow` every time you want to access the current leaderboard, to ensure you are always in the last cycle.
+Now you can use `lb` as a regular leaderboard. You should call `getLeaderboardNow` every time you want to access the current leaderboard, to make sure you are always on the last cycle.
 
-In the above example, the `PeriodicKey` was automatically handled. If you want, or have specific needs, you can use the following, which is equivalent:
+In the above example, the `CycleKey` was automatically handled. If you want, or have specific needs, you can use the following, which is equivalent:
 
 ```javascript
-const periodicKey = plb.getKeyNow(); // do something with this
-const lb = plb.getLeaderboard(periodicKey);
+const cycleKey = plb.getKeyNow(); // do something with this
+const lb = plb.getLeaderboard(cycleKey);
 ```
 
-What does a `PeriodicKey` look like?
+#### What does a `CycleKey` look like?
 * `yearly`: `y2020`
-* `weekly`: `y2020-w2650` (week number since epoch)
+* `weekly`: `w2650` (week number since epoch)
 * `monthly`: `y2020-m05`
 * `daily`: `y2020-m05-d15`
 * `hourly`: `y2020-m05-d15-h22`
 * `minute`: `y2020-m05-d15-h22-m53`
 
------
+
 ## Custom cycles
 
-asd
+You will have to pass a `CycleFunction` to the options object in the `PeriodicLeaderboard` constructor.  
+This function takes a time and returns the appropiate `CycleKey` that **uniquely** identifies the cycle that the time provided belongs to.
 
------
+The provided time will be in local time, so you must return the appropiate cycle in local time. If you want to offset the time, please use the `now` function in the options.
+
+#### Every 5 minutes
+
+```javascript
+const cycleFunction = (time) => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}-h${time.getHours()}-5m${Math.floor(time.getMinutes() / 5)}`;
+```
+
+#### Every 3 months
+
+```javascript
+const cycleFunction = (time) => `y${time.getFullYear()}-m${Math.floor(time.getMonth() / 3)}`;
+```
+
+#### Every N days
+
+This is a bit more complicated, because what happens when the cycle spans over a new year? Should the last cycle be shorter? Should always mantain the same number of days no matter what? (like weekly). On top of that, you have to think which day is the first day in the cycle.
+
+If you just want to truncate the cycle at the end of the year:
+
+```javascript
+const cycleFunction = (time) => `y${time.getFullYear()}-m${Math.floor(getDayOfTheYear(time) / N)}`;
+```
+
+Note that cycles will start on January 1st every year. You wil have to implement `getDayOfTheYear` yourself.
+
+If you need that all cycles are fixed, you will have to rely on the number of days since epoch (this is how weekly works, check [Defaults](#defaults) below):
+
+```javascript
+const cycleFunction = (time) => `dN-${Math.floor(getDaySinceEpoch(time) / N)}`;
+```
+
+Of couse you can add an offset to make it start when you need. You will have to implement `getDaySinceEpoch` yourself.
+
+#### Defaults
+
+You can see how the default cycles are defined in the object `CYCLE_FUNCTIONS` in [PeriodicLeaderboard.ts](/lib/PeriodicLeaderboard.ts#L77).
+
+#### Pass cycle
+
+```javascript
+const plb = new PeriodicLeaderboard(client, "plb:custom", {
+    leaderboardOptions: { ... },
+    cycle: cycleFunction
+});
+```
+
 ## Clean stale leaderboards
 
-asd
+You may get stale leaderboards by using periodic leaderboards. You can retrieve arbitrary cycles using `getLeaderboardAt`, or you may want to get every existing cycle.
 
------
+You can retrieve existing cycles with `getExistingKeys`:
+
+```javascript
+const keys = await plb.getExistingKeys();
+```
+```javascript
+[
+    "y2020-m05-d01",
+    "y2020-m05-d02",
+    "y2020-m05-d03",
+    "y2020-m05-d04"
+]
+```
+
+Then you can iterate them and retrieve the corresponding leaderboard for each one:
+
+```javascript
+for(let key of keys) {
+    if(key !== plb.getKeyNow()) { // you can check if this is not the active leaderboard
+        const lb = plb.getLeaderboard(key);
+        // export it, delete it
+    }
+}
+```
+
+Psst: you should compute `getKeyNow` outside the loop.
+
 ## Matrix of leaderboards
 
 asd
 
------
+
 ## Showcasing leaderboards
 
 asd
 
------
+
