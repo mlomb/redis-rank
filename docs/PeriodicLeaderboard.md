@@ -3,7 +3,7 @@
 This class does not extends `Leaderboard`. This class generates the appropiate `Leaderboard` instance for each period cycle.  
 Each cycle (a unique Leaderboard) is identified by a `PeriodicKey` (a string).
 
-Every time you want to interact with the leaderboard, you need to retrieve the appropiate based on the current time and cycle function. When entering a new cycle, you'll receive the new leaderboard right away. Stale leaderboards can be retrieved with `getExistingKeys`.
+Every time you want to interact with the leaderboard, you need to retrieve the appropiate based on the current time and cycle function. When entering a new cycle, you'll receive the new leaderboard right away. Stale (and active) leaderboards can be retrieved with `getExistingKeys`.
 
 ### Types
 
@@ -24,13 +24,14 @@ Every time you want to interact with the leaderboard, you need to retrieve the a
       * `minute`
       * `hourly`
       * `daily`
-      * `weekly`
+      * `weekly`: cut is Saturday-Sunday
       * `monthly`
       * `yearly`
     * `CycleFunction`: `(time: Date) =>` [PeriodicKey]() takes a time and retruns the appropiate `PeriodicKey` for that time (internally the suffix for the Redis key).  
     The key returned must be appropiate for local time (not UTC).  
     See [EXAMPLES.md](EXAMPLES.md) for examples.
-  * `now`?: [NowFunction](): function to evaluate the current time
+  * `now`?: [NowFunction](): function to evaluate the current time.  
+  If not provided, a function returning the local time will be used
 
 #### Example
 

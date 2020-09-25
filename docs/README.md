@@ -9,13 +9,13 @@
 * [Types](#types)
 * [Leaderboard](Leaderboard.md)
   * [Types](Leaderboard.md#types)
-  * [Constructor](Leaderboard.md##constructor)
-  * [Insert/update entries](Leaderboard.md##insertupdate-entries)
-  * [Remove entries](Leaderboard.md##remove-entries)
-  * [Find entries](Leaderboard.md##find-entries)
-  * [List entries](Leaderboard.md##list-entries)
-  * [Export](Leaderboard.md##export)
-  * [Information](Leaderboard.md##information)
+  * [Constructor](Leaderboard.md#constructor)
+  * [Insert/update entries](Leaderboard.md#insertupdate-entries)
+  * [Remove entries](Leaderboard.md#remove-entries)
+  * [Find entries](Leaderboard.md#find-entries)
+  * [List entries](Leaderboard.md#list-entries)
+  * [Export](Leaderboard.md#export)
+  * [Information](Leaderboard.md#information)
 * [PeriodicLeaderboard](PeriodicLeaderboard.md)
   * [Types](PeriodicLeaderboard.md#types)
   * [Constructor](PeriodicLeaderboard.md#constructor)
@@ -40,3 +40,13 @@ Most common types exposed by the API.
 * `Rank`: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number) 1-based
 * `SortPolicy`: `'high-to-low'` | `'low-to-high'`
 * `UpdatePolicy`: `'replace'` | `'aggregate'` | `'best'`
+
+## Redis keys
+
+Patterns used for the Redis keys is the following:
+
+* `Leaderboard`: `<key>`
+* `PeriodicLeaderboard`: `<baseKey>:<PeriodicKey>`
+* `LeaderboardMatrix`: `<baseKey>:<dimension>:<feature>` with `:<PeriodicKey>` if applies
+
+To avoid overlaps or other issues, we recommend avoiding the use of `:` in base keys, dimension name, and feature name.

@@ -13,7 +13,7 @@
   * `dimensions`?: [DimensionName]()[] dimensions to include in the result. If undefined or empty, all dimensions will be included
   * `features`?: [FeatureName]()[] features to include in the result. If undefined or empty, all features will be included
 
-Note: filters only affect the values returned, not the leaderboards searched
+❗ Note: filters only affect the values returned, not the leaderboards searched (leaderboards searched are set using `dimensionToSort` and `featureToSort`)
 
 ### Constructor
 
