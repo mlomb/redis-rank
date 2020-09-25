@@ -19,7 +19,7 @@ const lb = new Leaderboard(client, 'lb:example', {
 * `lb:example` is the Redis key of the sorted set.
 * `sortPolicy` is set to `high-to-low`, that means higher scores will be considered better
 * `updatePolicy` is set to `best`, that means when we update the leaderboard, it will only be updated if the score is better (depending on `sortPolicy`) than the previously stored score.  
-  Also `replace` and `increment` are supported.
+  Also `replace` and `aggregate` are supported.
 
 Now we can start doing queries to it!  
 Let's add some entries to it:
@@ -276,11 +276,209 @@ Psst: you should compute `getKeyNow` outside the loop.
 
 ## Matrix of leaderboards
 
-asd
+A matrix of leaderboards is defined by its dimensions and features. A dimension represents an abstract group (region, level, map) with optionally a cycle (_weekly_, _monthly_). A feature is a unit, for example, a score, number of kills, seconds survived, coins collected, etc.
 
+Let's say we want to create a leaderboard for a game with 5 dimensions:
+
+* `world`: a permanent leaderboard for everyone
+* `us`: a permanent, country specific leaderboard
+* `best-month`, `best-week`, `best-day`: global, recurring leaderboards
+
+And some features, lets say:
+
+* `kills`: accumulated number of kills (higher is better)
+* `coins`: accumulated coins collected (higher is better)
+* `best-kills`: best number of kill in the same game (higher is better)
+* `best-time`: best time (in seconds) taken to complete a level (lower is better)
+
+The leaderboard matrix for the game would look like this:
+
+|            | kills  | coins  | best-kills | best-time |
+|------------|--------|--------|------------|-----------|
+| world      | \.\.\. | \.\.\. | \.\.\.     | \.\.\.    |
+| us         | \.\.\. | \.\.\. | \.\.\.     | \.\.\.    |
+| best-month | \.\.\. | \.\.\. | \.\.\.     | \.\.\.    |
+| best-week  | \.\.\. | \.\.\. | \.\.\.     | \.\.\.    |
+| best-day   | \.\.\. | \.\.\. | \.\.\.     | \.\.\.    |
+
+And in code, this looks like:
+
+```javascript
+const mlb = new LeaderboardMatrix(client, "gamelb", {
+    dimensions: [
+        { name: "world" },
+        { name: "us" },
+        { name: "best-month", cycle: 'monthly' },
+        { name: "best-week", cycle: 'weekly' },
+        { name: "best-day", cycle: 'daily' }
+    ],
+    features: [{
+        name: "kills",
+        options: {
+            updatePolicy: 'aggregate',
+            sortPolicy: 'high-to-low'
+        }
+    },{
+        name: "coins",
+        options: {
+            updatePolicy: 'aggregate',
+            sortPolicy: 'high-to-low'
+        }
+    }, {
+        name: "best-kills",
+        options: {
+            updatePolicy: 'best',
+            sortPolicy: 'high-to-low'
+        }
+    }, {
+        name: "best-time",
+        options: {
+            updatePolicy: 'best',
+            sortPolicy: 'low-to-high'
+        }
+    }]
+});
+```
+
+To update multiples entries in all dimensions you can do it like this:
+
+```javascript
+await mlb.update([{
+    id: "player1",
+    values: {
+        kills: 27,
+        coins: 684,
+        "best-kills": 27,
+        "best-time": 427
+    }
+}, {
+    id: "player2",
+    values: {
+        kills: 33,
+        coins: 719,
+        // you can skip features if you want too
+        // "best-kills": 33,
+        // "best-time": 479
+    }
+}]);
+```
+
+You can filter which dimensions are updated, just list which dimensions you want to update in an array after the entries:
+
+```javascript
+await mlb.update([ ... ], ["global", "best-month", "best-week", "best-day"]); // skip "us", the listed players are not from the US
+```
+
+What about querying?
+
+```javascript
+await mlb.top("world", "kills", 3);
+```
+
+```javascript
+[
+    {
+        "id": "player2",   
+        "ranks": {
+            "world": {     
+                "kills": 1,
+                "coins": 1 
+            },
+            "us": {        
+                "kills": 1,
+                "coins": 1 
+            },
+            "best-month": {
+                "kills": 1,
+                "coins": 1
+            },
+            "best-week": {
+                "kills": 1,
+                "coins": 1
+            },
+            "best-day": {
+                "kills": 1,
+                "coins": 1
+            }
+        },
+        "scores": {
+            "world": {
+                "kills": 33,
+                "coins": 719
+            },
+            "us": {
+                "kills": 33,
+                "coins": 719
+            },
+            "best-month": {
+                "kills": 33,
+                "coins": 719
+            },
+            "best-week": {
+                "kills": 33,
+                "coins": 719
+            },
+            "best-day": {
+                "kills": 33,
+                "coins": 719
+            }
+        }
+    },
+    ...
+]
+```
+
+Woah, thats a lot of data! You can filter queries to specific dimensions/features like so:
+
+
+```javascript
+await mlb.top("world", "kills", 3, {
+    dimensions: ["world"],
+    features: ["kills", "coins"]
+});
+```
+
+```javascript
+[
+    {
+        "id": "player2",
+        "ranks": {
+            "world": { "kills": 1, "coins": 1 }
+        },
+        "scores": {
+            "world": { "kills": 33, "coins": 719 }
+        }
+    },
+    {
+        "id": "player1",
+        "ranks": {
+            "world": { "kills": 2, "coins": 2 }
+        },
+        "scores": {
+            "world": { "kills": 27, "coins": 684 }
+        }
+    }
+]
+```
+
+`bottom`, `list`, `around`, `remove` and `count` work like you would expect.
+
+You can access a single leaderboard like so:
+
+```javascript
+mlb.getLeaderboard("best-month", "kills"); // will give you the current leaderboard
+mlb.getRawLeaderboard("best-month", "kills"); // will give you the periodic leaderboard wrapper
+```
 
 ## Showcasing leaderboards
 
-asd
+Let's say you have in the front page of your game the daily leaderboard. What happens when the day change and there are no entries? Do you want to show the empty leaderboard? I would fall back to the weekly leaderboard, and if the change also is a week change then to the monthly, then yearly, then permanent.
+
+You can do this easily with the `showcase` function:
 
 
+```javascript
+await mlb.showcase(["best-day", "best-week", "best-month", "world"], "kills", 10);
+```
+
+This will query the top `threshold` entries from the leaderboard that has at least `threshold` entries in the order you provided. If none match, the last in the order ("world") will be used to query the entries.

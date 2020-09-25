@@ -2,7 +2,13 @@
 
 ## Examples
 
-* [TODO]()
+* [Basic leaderboard usage]()
+* [Exporting a leaderboard]()
+* [Recurring leaderboards]()
+* [Custom cycles]()
+* [Clean stale leaderboards]()
+* [Matrix of leaderboards]()
+* [Showcasing leaderboards]()
 
 ## API Reference
 
@@ -30,6 +36,7 @@
   * [Find entries](LeaderboardMatrix.md#find-entries)
   * [List entries](LeaderboardMatrix.md#list-entries)
   * [Information](LeaderboardMatrix.md#information)
+* [Redis keys](#redis-keys)
 
 ## Types
 
