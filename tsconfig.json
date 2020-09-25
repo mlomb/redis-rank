@@ -68,7 +68,7 @@
     "out": "docs"
   },
   "include": [
-    "src/**/*"
+    "lib/**/*"
   ],
   "exclude": ["node_modules", "dist"]
 }
