@@ -21,8 +21,8 @@ const lb = new Leaderboard(client, 'lb:example', {
 * `updatePolicy` is set to `best`, that means when we update the leaderboard, it will only be updated if the score is better (depending on `sortPolicy`) than the previously stored score.  
   Also `replace` and `aggregate` are supported.
 
-Now we can start doing queries to it!  
-Let's add some entries to it:
+Now we can start doing queries!  
+Let's add some entries:
 
 ```javascript
 await lb.update([
