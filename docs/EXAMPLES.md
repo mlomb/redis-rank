@@ -153,10 +153,50 @@ stream.on("data", async (entries) => {
 -----
 ## Recurring leaderboards
 
-asd
+Let's say you want to create a leaderboard that "resets" each month (for custom cycles see the [custom cycles example](#Custom%20cycles)). I say "reset" in quotes because the previous Redis Key is not deleted or altered when a cycle ends (a month). A new key is generated for each cycle identified by a `PeriodicKey`. If you want to delete or export previous leaderboards see the [clean stale leaderboards example](Clean%20stale%20leaderboards).
+
+Create the periodic leaderboard:
+
+```javascript
+const plb = new PeriodicLeaderboard(client, "plb:test", {
+    leaderboardOptions: {
+        sortPolicy: 'high-to-low',
+        updatePolicy: 'replace'
+    },
+    cycle: 'monthly'
+});
+```
+
+Now you use `getLeaderboardNow` to get the leaderboard for the current cycle (month in this case):
+
+```javascript
+const lb = plb.getLeaderboardNow();
+```
+
+Now you can use `lb` as a regular leaderboard. You should call `getLeaderboardNow` every time you want to access the current leaderboard, to ensure you are always in the last cycle.
+
+In the above example, the `PeriodicKey` was automatically handled. If you want, or have specific needs, you can use the following, which is equivalent:
+
+```javascript
+const periodicKey = plb.getKeyNow(); // do something with this
+const lb = plb.getLeaderboard(periodicKey);
+```
+
+What does a `PeriodicKey` look like?
+* `yearly`: `y2020`
+* `weekly`: `y2020-w2650` (week number since epoch)
+* `monthly`: `y2020-m05`
+* `daily`: `y2020-m05-d15`
+* `hourly`: `y2020-m05-d15-h22`
+* `minute`: `y2020-m05-d15-h22-m53`
 
 -----
 ## Custom cycles
+
+asd
+
+-----
+## Clean stale leaderboards
 
 asd
 
