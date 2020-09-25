@@ -14,9 +14,6 @@
   </a>
 </p>
 
-## **v2.0 is on the works!**
-Switch to branch `v2` to check out the progress!
-
 # Features
 * **Lightweight**: minimal dependencies, only [ioredis](https://github.com/luin/ioredis) is required
 * **Performance**: guaranteed _at most_ one trip to Redis on each function call*, taking advantage of [ioredis's pipelining](https://github.com/luin/ioredis#pipelining) and [Lua scripts](https://redis.io/commands/eval)
