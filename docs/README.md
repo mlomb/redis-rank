@@ -46,7 +46,7 @@ Most common types exposed by the API.
 Patterns used for the Redis keys is the following:
 
 * `Leaderboard`: `<key>`
-* `PeriodicLeaderboard`: `<baseKey>:<PeriodicKey>`
-* `LeaderboardMatrix`: `<baseKey>:<dimension>:<feature>` with `:<PeriodicKey>` if applies
+* `PeriodicLeaderboard`: `<baseKey>:<CycleKey>`
+* `LeaderboardMatrix`: `<baseKey>:<dimension>:<feature>` with `:<CycleKey>` if applies
 
 To avoid overlaps or other issues, we recommend avoiding the use of `:` in base keys, dimension name, and feature name.

@@ -2,7 +2,7 @@ import { Redis } from 'ioredis';
 import { Leaderboard, LeaderboardOptions } from './Leaderboard';
 
 /** uniquely identifies a cycle */
-export type PeriodicKey = string;
+export type CycleKey = string;
 
 export type DefaultCycles =
     'minute'  |
@@ -13,7 +13,7 @@ export type DefaultCycles =
     'yearly';
 
 export type NowFunction = () => Date;
-export type CycleFunction = (time: Date) => PeriodicKey;
+export type CycleFunction = (time: Date) => CycleKey;
 
 /**
  * The cycle of a periodic leaderboard.  
@@ -21,7 +21,7 @@ export type CycleFunction = (time: Date) => PeriodicKey;
  * `minute`, `hourly`, `daily`, `weekly`, `monthly`, `yearly`, `all-time`
  * 
  * Or you can specify a custom function, taking a Date object and returning the
- * corresponding PeriodicKey for the provided time (internally this is the
+ * corresponding CycleKey for the provided time (internally this is the
  * suffix for the Redis key)
  */
 export type PeriodicLeaderboardCycle = CycleFunction | DefaultCycles;
@@ -109,20 +109,20 @@ export class PeriodicLeaderboard {
     }
 
     /**
-     * Get the periodic key at a specified date and time
+     * Get the cycle key at a specified date and time
      * 
      * @param time the time
      */
-    getKey(time: Date): PeriodicKey {
+    getKey(time: Date): CycleKey {
         return (CYCLE_FUNCTIONS[this.options.cycle as DefaultCycles] || this.options.cycle)(time);
     }
 
     /**
-     * Get the leaderboard for the provided periodic key
+     * Get the leaderboard for the provided cycle key
      * 
-     * @param key periodic key
+     * @param key cycle key
      */
-    getLeaderboard(key: PeriodicKey): Leaderboard {
+    getLeaderboard(key: CycleKey): Leaderboard {
         let finalKey = `${this.baseKey}:${key}`;
 
         let lb = this.leaderboards.get(finalKey);
@@ -148,10 +148,10 @@ export class PeriodicLeaderboard {
     }
 
     /**
-     * Get the periodic key that should be used based on the time returned
+     * Get the cycle key that should be used based on the time returned
      * by `now()`
      */
-    getKeyNow(): PeriodicKey {
+    getKeyNow(): CycleKey {
         return this.getKey(this.options.now ? this.options.now() : new Date());
     }
 
@@ -163,13 +163,13 @@ export class PeriodicLeaderboard {
     }
 
     /**
-     * Find all the active periodic keys in the database.  
+     * Find all the active cycle keys in the database.  
      * Use this function sparsely, it uses `SCAN` over the whole database to
      * find matches.
      * 
      * Complexity: `O(N)` where N is the number of keys in the Redis database
      */
-    getExistingKeys(): Promise<PeriodicKey[]> {
+    getExistingKeys(): Promise<CycleKey[]> {
         return new Promise((resolve, reject) => {
             let stream = this.client.scanStream({
                 match: `${this.baseKey}:*`,

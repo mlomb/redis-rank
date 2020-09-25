@@ -1,13 +1,13 @@
 ## PeriodicLeaderboard
 
 This class does not extends `Leaderboard`. This class generates the appropiate `Leaderboard` instance for each period cycle.  
-Each cycle (a unique Leaderboard) is identified by a `PeriodicKey` (a string).
+Each cycle (a unique Leaderboard) is identified by a `CycleKey` (a string).
 
 Every time you want to interact with the leaderboard, you need to retrieve the appropiate based on the current time and cycle function. When entering a new cycle, you'll receive the new leaderboard right away. Stale (and active) leaderboards can be retrieved with `getExistingKeys`.
 
 ### Types
 
-* `PeriodicKey`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) uniquely identifies a cycle
+* `CycleKey`: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) uniquely identifies a cycle
 * `NowFunction`: `() =>` [Date](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date)
 
 ### Constructor
@@ -27,7 +27,7 @@ Every time you want to interact with the leaderboard, you need to retrieve the a
       * `weekly`: cut is Saturday-Sunday
       * `monthly`
       * `yearly`
-    * `CycleFunction`: `(time: Date) =>` [PeriodicKey]() takes a time and retruns the appropiate `PeriodicKey` for that time (internally the suffix for the Redis key).  
+    * `CycleFunction`: `(time: Date) =>` [CycleKey]() takes a time and retruns the appropiate `CycleKey` for that time (internally the suffix for the Redis key).  
     The key returned must be appropiate for local time (not UTC).  
     See [EXAMPLES.md](EXAMPLES.md) for examples.
   * `now`?: [NowFunction](): function to evaluate the current time.  
@@ -47,12 +47,12 @@ const plb = new PeriodicLeaderboard(client, "plb:test", {
 
 ### Keys
 
-* `getKey(time: Date)`: [PeriodicKey]() get the periodic key at a specified date and time
+* `getKey(time: Date)`: [CycleKey]() get the cycle key at a specified date and time
   * `time`: [Date](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date) the time
 
-* `getKeyNow()`: [PeriodicKey]() get the current leaderboard based on the time returned by `now()`
+* `getKeyNow()`: [CycleKey]() get the current leaderboard based on the time returned by `now()`
 
-* `getExistingKeys()`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[PeriodicKey]()[]> find all the active periodic keys in the database.  
+* `getExistingKeys()`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[CycleKey]()[]> find all the active cycle keys in the database.  
   Use this function sparsely, it uses `SCAN` over the whole database to find matches.  
   ⚠️ I recommend having periodic leaderboards on a database index other than the main one if you plan to call this function a lot.
   #### Complexity
@@ -60,8 +60,8 @@ const plb = new PeriodicLeaderboard(client, "plb:test", {
 
 ### Leaderboards
 
-* `getLeaderboard(key: PeriodicKey)`: [Leaderboard]() get the leaderboard for the provided periodic key
-  * `key`: [PeriodicKey]() periodic key
+* `getLeaderboard(key: CycleKey)`: [Leaderboard]() get the leaderboard for the provided cycle key
+  * `key`: [CycleKey]() cycle key
 
 * `getLeaderboardAt(time?: Date)`: [Leaderboard]() get the leaderboard at the specified date and time
   * `time`?: [Date](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date) the time

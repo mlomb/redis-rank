@@ -1,7 +1,7 @@
 import {
     LeaderboardOptions,
     DefaultCycles,
-    PeriodicKey,
+    CycleKey,
     CycleFunction,
     PeriodicLeaderboard
 } from '../lib/index';
@@ -43,10 +43,10 @@ describe("PeriodicLeaderboard", () => {
             });
         });
 
-        test("expected periodic key", () => {
+        test("expected cycle key", () => {
             const halfWindowSecs = windowSecs * 0.5;
 
-            let lastKey: PeriodicKey = plb.getKey(REFERENCE_DATE);
+            let lastKey: CycleKey = plb.getKey(REFERENCE_DATE);
             for(let i = 0; i < cyclesToTest; i++) {
                 let time = new Date(REFERENCE_DATE);
                 time.setSeconds(time.getSeconds() + i * windowSecs + halfWindowSecs); // advance half cycle
@@ -62,16 +62,16 @@ describe("PeriodicLeaderboard", () => {
     });
 
     test.each([
-        ['5 minutes', 60 * 5, (time: Date): PeriodicKey => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}-h${time.getHours()}-5m${Math.floor(time.getMinutes() / 5)}`],
-        ['3 hours', 60 * 60 * 3, (time: Date): PeriodicKey => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}-h${Math.floor(time.getHours() / 3)}`]
-    ])('custom cylce %s periodic key', (_, windowSecs, cycle: CycleFunction) => { // windowSecs is exact
+        ['5 minutes', 60 * 5, (time: Date): CycleKey => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}-h${time.getHours()}-5m${Math.floor(time.getMinutes() / 5)}`],
+        ['3 hours', 60 * 60 * 3, (time: Date): CycleKey => `y${time.getFullYear()}-m${time.getMonth()}-d${time.getDate()}-h${Math.floor(time.getHours() / 3)}`]
+    ])('custom cylce %s cycle key', (_, windowSecs, cycle: CycleFunction) => { // windowSecs is exact
         plb = new PeriodicLeaderboard(rc, TEST_KEY, {
             leaderboardOptions: lbOptions,
             cycle: cycle
         });
 
         let time = new Date(REFERENCE_DATE);
-        let lastKey: PeriodicKey = plb.getKey(time);
+        let lastKey: CycleKey = plb.getKey(time);
         for(let i = 0; i < 5000; i++) {
             time.setSeconds(time.getSeconds() + windowSecs);
             expect(lastKey).not.toBe(plb.getKey(time));
