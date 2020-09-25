@@ -52,14 +52,22 @@ See [here](https://github.com/luin/ioredis#connect-to-redis) for more informatio
 
 ```javascript
 let client = new Redis({
-  host: "127.0.0.1",
-  port: 6379
+    host: "127.0.0.1",
+    port: 6379
 });
 ```
 
+You are ready, now read one of the examples linked below!
+
 # Examples
 
-* [TODO]()
+* [Basic leaderboard usage](docs/EXAMPLES.md#basic-leaderboard-usage)
+* [Exporting a leaderboard](docs/EXAMPLES.md#exporting-a-leaderboard)
+* [Recurring leaderboards](docs/EXAMPLES.md#recurring-leaderboards)
+* [Custom cycles](docs/EXAMPLES.md#custom-cycles)
+* [Clean stale leaderboards](docs/EXAMPLES.md#clean-stale-leaderboards)
+* [Matrix of leaderboards](docs/EXAMPLES.md#matrix-of-leaderboards)
+* [Showcasing leaderboards](docs/EXAMPLES.md#showcasing-leaderboards)
 
 # API
 
@@ -87,6 +95,7 @@ let client = new Redis({
   * [Find entries](docs/LeaderboardMatrix.md#find-entries)
   * [List entries](docs/LeaderboardMatrix.md#list-entries)
   * [Information](docs/LeaderboardMatrix.md#information)
+* [Redis keys](docs/#redis-keys)
 
 # Running tests
 

@@ -2,13 +2,13 @@
 
 ## Examples
 
-* [Basic leaderboard usage]()
-* [Exporting a leaderboard]()
-* [Recurring leaderboards]()
-* [Custom cycles]()
-* [Clean stale leaderboards]()
-* [Matrix of leaderboards]()
-* [Showcasing leaderboards]()
+* [Basic leaderboard usage](EXAMPLES.md#basic-leaderboard-usage)
+* [Exporting a leaderboard](EXAMPLES.md#exporting-a-leaderboard)
+* [Recurring leaderboards](EXAMPLES.md#recurring-leaderboards)
+* [Custom cycles](EXAMPLES.md#custom-cycles)
+* [Clean stale leaderboards](EXAMPLES.md#clean-stale-leaderboards)
+* [Matrix of leaderboards](EXAMPLES.md#matrix-of-leaderboards)
+* [Showcasing leaderboards](EXAMPLES.md#showcasing-leaderboards)
 
 ## API Reference
 
