@@ -39,19 +39,19 @@ Redis 2.6.12 or newer is required. The package [ioredis](https://www.npmjs.com/p
 ES5
 ```javascript
 const Redis = require('ioredis');
-const { Leaderboard } = require('redis-rank');
+const { Leaderboard, PeriodicLeaderboard, LeaderboardMatrix } = require('redis-rank');
 ```
 ES6
 ```javascript
 import { Redis } from 'ioredis';
-import { Leaderboard } from 'redis-rank';
+import { Leaderboard, PeriodicLeaderboard, LeaderboardMatrix } from 'redis-rank';
 ```
 
 You will have to provide a [ioredis](https://github.com/luin/ioredis) connection.
 See [here](https://github.com/luin/ioredis#connect-to-redis) for more information.
 
 ```javascript
-let client = new Redis({
+const client = new Redis({
     host: "127.0.0.1",
     port: 6379
 });
