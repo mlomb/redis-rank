@@ -351,6 +351,7 @@ describe("Leaderboard", () => {
         });
 
         test("list", (done) => lb.list(1, 100).catch(_err => done()));
+        test("listByScore", (done) => lb.listByScore(0, 10000).catch(_err => done()));
         test("around", (done) => lb.around("foo", 10).catch(_err => done()));
 
         test("export", (done) => {
