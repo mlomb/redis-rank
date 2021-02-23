@@ -57,6 +57,11 @@ export type Entry = {
     rank: Rank
 }
 
+export type EntryWithoutRank = {
+    id: ID,
+    score: Score
+}
+
 export type EntryUpdateQuery = {
     id: ID,
     value: number | Score
@@ -290,6 +295,37 @@ export class Leaderboard {
                 id: result[i],
                 score: parseFloat(result[i + 1]),
                 rank: rank++
+            });
+        }
+
+        return entries;
+    }
+
+    /**
+     * Retrieve entries between scores
+     *
+     * Complexity: `O(log(N)+M)` where N is the number of entries in the
+     * leaderboard and M the number of entries returned
+     *
+     * @param lower lower bound to query (inclusive)
+     * @param upper upper bound to query (inclusive)
+     */
+    async listByScore(lower: Score, upper: Score): Promise<EntryWithoutRank[]> {
+        lower = Math.max(lower, 1);
+        upper = Math.max(upper, 1);
+
+        let result = await this.client[this.options.sortPolicy === 'low-to-high' ? 'zrangebyscore' : 'zrevrangebyscore'](
+            this.key,
+            this.options.sortPolicy === 'low-to-high' ? lower - 1 : upper - 1,
+            this.options.sortPolicy === 'low-to-high' ? upper - 1 : lower - 1,
+            'WITHSCORES'
+        );
+        let entries: EntryWithoutRank[] = [];
+
+        for (let i = 0; i < result.length; i += 2) {
+            entries.push({
+                id: result[i],
+                score: parseFloat(result[i + 1])
             });
         }
 
