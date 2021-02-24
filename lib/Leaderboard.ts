@@ -57,7 +57,7 @@ export type Entry = {
     rank: Rank
 }
 
-export type EntryWithoutRank = {
+export type IDScorePair = {
     id: ID,
     score: Score
 }
@@ -310,14 +310,14 @@ export class Leaderboard {
      * @param lower lower bound to query (inclusive)
      * @param upper upper bound to query (inclusive)
      */
-    async listByScore(lower: Score, upper: Score): Promise<EntryWithoutRank[]> {
+    async listByScore(lower: Score, upper: Score): Promise<IDScorePair[]> {
         let result = await this.client[this.options.sortPolicy === 'low-to-high' ? 'zrangebyscore' : 'zrevrangebyscore'](
             this.key,
             this.options.sortPolicy === 'low-to-high' ? lower : upper,
             this.options.sortPolicy === 'low-to-high' ? upper : lower,
             'WITHSCORES'
         );
-        let entries: EntryWithoutRank[] = [];
+        let entries: IDScorePair[] = [];
 
         for (let i = 0; i < result.length; i += 2) {
             entries.push({

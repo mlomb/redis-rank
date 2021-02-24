@@ -8,6 +8,10 @@ Plain and simple leaderboard. Ranks are 1-based.
   * `id`: [ID](/docs#types) id
   * `score`: [Score](/docs#types) score
   * `rank`: [Rank](/docs#types) rank
+  
+* `IDScorePair`:
+  * `id`: [ID](/docs#types) id
+  * `score`: [Score](/docs#types) score
 
 ### Constructor
 
@@ -205,8 +209,7 @@ Note that when you update an entry that doesn't exist, it will be created, so up
     * got 2 + 1 + 4 = 7 elements
   * `fillBorders`=`true` → [ 1st, 2nd, **3rd**, 4th, 5th, 6th, 7th, 8th, 9th ]
     * got 2 + 1 + 6 = 9 elements
-
-
+  
   #### Example
   ```javascript
   await lb.around("3rd", 4); // fillBorders=false by default
@@ -228,6 +231,19 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   ```
   #### Complexity
   `O(log(N)+M)` where N is the number of entries in the leaderboard and M is (2*`distance`+1)
+
+
+* `listByScore(low: Score, high: Score)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[IDScorePair](docs/Leaderboard.md#types)[]> retrieve IDScorePair within a score range
+  * `low`: [Score](/docs#types) lower bound to query (inclusive)
+  * `high`: [Score](/docs#types) higher bound to query (inclusive)
+  #### Example
+  ```javascript
+  await lb.listByScore(20, 30); /// === [{ id: "n20", score: 20 }, ... 10 more]
+  ```
+  #### Complexity
+  `O(log(N)+M)` where N is the number of entries in the leaderboard and M the number of entries returned (`high` - `low` + 1)
+
+
 
 ### Export
 
