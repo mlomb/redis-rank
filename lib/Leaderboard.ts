@@ -311,13 +311,10 @@ export class Leaderboard {
      * @param upper upper bound to query (inclusive)
      */
     async listByScore(lower: Score, upper: Score): Promise<EntryWithoutRank[]> {
-        lower = Math.max(lower, 1);
-        upper = Math.max(upper, 1);
-
         let result = await this.client[this.options.sortPolicy === 'low-to-high' ? 'zrangebyscore' : 'zrevrangebyscore'](
             this.key,
-            this.options.sortPolicy === 'low-to-high' ? lower - 1 : upper - 1,
-            this.options.sortPolicy === 'low-to-high' ? upper - 1 : lower - 1,
+            this.options.sortPolicy === 'low-to-high' ? lower : upper,
+            this.options.sortPolicy === 'low-to-high' ? upper : lower,
             'WITHSCORES'
         );
         let entries: EntryWithoutRank[] = [];
