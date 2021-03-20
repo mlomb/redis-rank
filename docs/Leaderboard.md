@@ -8,10 +8,6 @@ Plain and simple leaderboard. Ranks are 1-based.
   * `id`: [ID](/docs#types) id
   * `score`: [Score](/docs#types) score
   * `rank`: [Rank](/docs#types) rank
-  
-* `IDScorePair`:
-  * `id`: [ID](/docs#types) id
-  * `score`: [Score](/docs#types) score
 
 ### Constructor
 
@@ -233,16 +229,20 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   `O(log(N)+M)` where N is the number of entries in the leaderboard and M is (2*`distance`+1)
 
 
-* `listByScore(low: Score, high: Score)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[IDScorePair](docs/Leaderboard.md#types)[]> retrieve IDScorePair within a score range
-  * `low`: [Score](/docs#types) lower bound to query (inclusive)
-  * `high`: [Score](/docs#types) higher bound to query (inclusive)
+* `listByScore(min: Score, max: Score)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Entry](docs/Leaderboard.md#types)[]> retrieve entries within a score range
+  * `min`: [Score](/docs#types) min score to query (inclusive)
+  * `max`: [Score](/docs#types) max score to query (inclusive)
   #### Example
   ```javascript
-  await lb.listByScore(20, 30); /// === [{ id: "n20", score: 20 }, ... 10 more]
+  await lb.listByScore(20, 30);
+  /// === [
+  /// { id: "ecd", score: 20, rank: 39 },
+  /// { id: "yug", score: 22, rank: 38 },
+  /// { id: "bls", score: 27, rank: 37 }
+  /// ]
   ```
   #### Complexity
-  `O(log(N)+M)` where N is the number of entries in the leaderboard and M the number of entries returned (`high` - `low` + 1)
-
+  `O(log(N)+M)` where N is the number of entries in the leaderboard and M the number of entries returned
 
 
 ### Export
