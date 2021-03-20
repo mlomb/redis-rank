@@ -236,9 +236,9 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   ```javascript
   await lb.listByScore(20, 30);
   /// === [
-  /// { id: "ecd", score: 20, rank: 39 },
+  /// { id: "ecd", score: 20, rank: 37 },
   /// { id: "yug", score: 22, rank: 38 },
-  /// { id: "bls", score: 27, rank: 37 }
+  /// { id: "bls", score: 27, rank: 39 }
   /// ]
   ```
   #### Complexity
