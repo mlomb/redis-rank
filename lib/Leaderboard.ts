@@ -57,11 +57,6 @@ export type Entry = {
     rank: Rank
 }
 
-export type IDScorePair = {
-    id: ID,
-    score: Score
-}
-
 export type EntryUpdateQuery = {
     id: ID,
     value: number | Score
@@ -307,22 +302,24 @@ export class Leaderboard {
      * Complexity: `O(log(N)+M)` where N is the number of entries in the
      * leaderboard and M the number of entries returned
      *
-     * @param lower lower bound to query (inclusive)
-     * @param upper upper bound to query (inclusive)
+     * @param min min score to query (inclusive)
+     * @param max max score to query (inclusive)
      */
-    async listByScore(lower: Score, upper: Score): Promise<IDScorePair[]> {
-        let result = await this.client[this.options.sortPolicy === 'low-to-high' ? 'zrangebyscore' : 'zrevrangebyscore'](
-            this.key,
-            this.options.sortPolicy === 'low-to-high' ? lower : upper,
-            this.options.sortPolicy === 'low-to-high' ? upper : lower,
-            'WITHSCORES'
-        );
-        let entries: IDScorePair[] = [];
+    async listByScore(min: Score, max: Score): Promise<Entry[]> {
+        let result = await (this.options.sortPolicy === 'high-to-low' ?
+            // @ts-ignore
+            this.client.zrevrangescore(this.key, min, max) :
+            // @ts-ignore
+            this.client.zrangescore(this.key, min, max));
 
-        for (let i = 0; i < result.length; i += 2) {
+        let entries: Entry[] = [];
+        let rank = 0;
+        
+        for (let i = 0; i < result[1].length; i += 2) {
             entries.push({
-                id: result[i],
-                score: parseFloat(result[i + 1])
+                id: result[1][i],
+                rank: 1 + result[0] + rank++,
+                score: parseFloat(result[1][i + 1])
             });
         }
 
