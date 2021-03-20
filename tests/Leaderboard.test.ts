@@ -344,13 +344,56 @@ describe("Leaderboard", () => {
             });
         })
     });
-    
+
+    describe("list by score", () => {
+        describe.each([
+            'low-to-high',
+            'high-to-low'
+        ])("%s", (sortPolicy) => {
+            beforeEach(async () => {
+                lb = new Leaderboard(rc, TEST_KEY, {
+                    sortPolicy: sortPolicy as SortPolicy,
+                    updatePolicy: 'replace',
+                });
+                for (let k = 0; k < 10; k++) { // repeat a few times
+                    for (let i = 0; i < 10; i++) {
+                        await lb.updateOne(`n${i}`, (sortPolicy === 'high-to-low' ? -1 : 1) * i);
+                    }
+                }
+            });
+            test.each([
+                [20, 15, []],
+                [15, 20, []],
+                [0, 1.5, [0, 1]],
+                [-10, 1.5, [0, 1]],
+                [-10, 10, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]],
+                [4, 8, [4, 5, 6, 7, 8]],
+                [4.01, 7.99, [5, 6, 7]],
+                [3, 5, [3, 4, 5]],
+                [7, 100, [7, 8, 9]],
+            ])("score from %f to %f", async (min, max, expectedResult) => {
+                let r = sortPolicy === 'high-to-low' ? await lb.listByScore(-max, -min) : await lb.listByScore(min, max);
+                expect(r.length).toBe(expectedResult.length);
+                let id = 0;
+                for (let i = 0; i < r.length; i++) {
+                    let entry_id = `n${expectedResult[id++]}`;
+                    let e = r[i];
+                    expect(e.id).toBe(entry_id);
+                    expect(e.rank).toBe(await lb.rank(entry_id));
+                    expect(e.score).toBe(await lb.score(entry_id));
+                    expect(e.score).toBeCloseTo((sortPolicy === 'high-to-low' ? -1 : 1) * expectedResult[i]);
+                }
+            });
+        })
+    });
+
     describe("errors", () => {
         beforeEach(() => {
             lb = new Leaderboard(rc, TEST_KEY, (null as any) as LeaderboardOptions);
         });
 
         test("list", (done) => lb.list(1, 100).catch(_err => done()));
+        test("listByScore", (done) => lb.listByScore(0, 10000).catch(_err => done()));
         test("around", (done) => lb.around("foo", 10).catch(_err => done()));
 
         test("export", (done) => {

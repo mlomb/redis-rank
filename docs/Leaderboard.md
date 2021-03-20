@@ -205,8 +205,7 @@ Note that when you update an entry that doesn't exist, it will be created, so up
     * got 2 + 1 + 4 = 7 elements
   * `fillBorders`=`true` → [ 1st, 2nd, **3rd**, 4th, 5th, 6th, 7th, 8th, 9th ]
     * got 2 + 1 + 6 = 9 elements
-
-
+  
   #### Example
   ```javascript
   await lb.around("3rd", 4); // fillBorders=false by default
@@ -228,6 +227,23 @@ Note that when you update an entry that doesn't exist, it will be created, so up
   ```
   #### Complexity
   `O(log(N)+M)` where N is the number of entries in the leaderboard and M is (2*`distance`+1)
+
+
+* `listByScore(min: Score, max: Score)`: [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Entry](docs/Leaderboard.md#types)[]> retrieve entries within a score range
+  * `min`: [Score](/docs#types) min score to query (inclusive)
+  * `max`: [Score](/docs#types) max score to query (inclusive)
+  #### Example
+  ```javascript
+  await lb.listByScore(20, 30);
+  /// === [
+  /// { id: "ecd", score: 20, rank: 37 },
+  /// { id: "yug", score: 22, rank: 38 },
+  /// { id: "bls", score: 27, rank: 39 }
+  /// ]
+  ```
+  #### Complexity
+  `O(log(N)+M)` where N is the number of entries in the leaderboard and M the number of entries returned
+
 
 ### Export
 

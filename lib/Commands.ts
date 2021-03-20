@@ -53,6 +53,29 @@ if dif > 0 then
 end
 `;
 
+/**
+ * `KEYS[1]`: leaderboard key  
+ * `ARGV[1]`: min score  
+ * `ARGV[2]`: max score
+ * 
+ * Returns [ lowest_rank, [[id, score], ...] ]
+ */
+const zrangescore = (dir: SortDirection) => `
+local c = redis.call(
+    'z${dir === 'desc' ? 'rev' : ''}rangebyscore',
+    KEYS[1],
+    ${dir === 'desc' ? 'ARGV[2]' : 'ARGV[1]'},
+    ${dir === 'desc' ? 'ARGV[1]' : 'ARGV[2]'},
+    'WITHSCORES'
+);
+if #c > 0 then
+    local r = redis.call('z${dir === 'desc' ? 'rev' : ''}rank', KEYS[1], c[1]);
+    return { r, c }
+else
+    return { -1, {} }
+end
+`;
+
 const aroundRange = `
 local function aroundRange(path, id, distance, fill_borders, sort_dir)
     local r = redis.call((sort_dir == 'low-to-high') and 'zrank' or 'zrevrank', path, id) -- entry rank
@@ -231,6 +254,7 @@ return retrieveEntries(
  * * `zkeeptop` & `zrevkeeptop`: removes all members that are not in the top N
  * * `zaround`: return the entries around an entry in a defined distance with
  * a fill border policy
+ * * `zrangescore` & `zrevrangescore`: return the entries between scores
  * * `zmatrixfind`, `zmatrixrange` and `zmatrixaround`: equivalent to their
  * non-matrix versions but using a matrix of leaderboards
  * 
@@ -249,6 +273,8 @@ export function extendRedisClient(client: Redis) {
     client.defineCommand("zkeeptop",    { numberOfKeys: 1, lua: zkeeptop('asc')  });
     client.defineCommand("zrevkeeptop", { numberOfKeys: 1, lua: zkeeptop('desc') });
     client.defineCommand("zaround",     { numberOfKeys: 1, lua: zaround  });
+    client.defineCommand("zrangescore",    { numberOfKeys: 1, lua: zrangescore('asc')  });
+    client.defineCommand("zrevrangescore", { numberOfKeys: 1, lua: zrangescore('desc') });
     client.defineCommand("zmatrixfind",   { lua: zmatrixfind });
     client.defineCommand("zmatrixrange",  { lua: zmatrixrange });
     client.defineCommand("zmatrixaround", { lua: zmatrixaround });
