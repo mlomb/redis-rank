@@ -127,7 +127,7 @@ stream.on("end", () => {
 });
 ```
 
-If you want to do async work when you receive each batch (for example, insert the data into MySQL), then you should use the `pasue` and `resume` functions in the stream:
+If you want to do async work when you receive each batch (for example, insert the data into MySQL), then you should use the `pause` and `resume` functions in the stream:
 
 ```javascript
 stream.on("data", (entries) => {
