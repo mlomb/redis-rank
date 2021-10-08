@@ -392,9 +392,9 @@ describe("Leaderboard", () => {
             lb = new Leaderboard(rc, TEST_KEY, (null as any) as LeaderboardOptions);
         });
 
-        test("list", (done) => lb.list(1, 100).catch(_err => done()));
-        test("listByScore", (done) => lb.listByScore(0, 10000).catch(_err => done()));
-        test("around", (done) => lb.around("foo", 10).catch(_err => done()));
+        test("list", (done) => void lb.list(1, 100).catch(_err => done()));
+        test("listByScore", (done) => void lb.listByScore(0, 10000).catch(_err => done()));
+        test("around", (done) => void lb.around("foo", 10).catch(_err => done()));
 
         test("export", (done) => {
             let stream = lb.exportStream(100);
