@@ -5,8 +5,6 @@ on: [push]
 jobs:
   build-test:
     runs-on: ubuntu-latest
-    services:
-        image: redis
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
@@ -14,8 +12,7 @@ jobs:
           node-version: 14.x
       - run: npm i
       - run: npm run build
+      - name: Install Redis
+        run: sudo apt-get install -y redis-server
       - run: npm run test
-        env:
-          REDIS_HOST: redis
-          REDIS_PORT: 6379
       - uses: codecov/codecov-action@v2
