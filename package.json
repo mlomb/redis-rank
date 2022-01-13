@@ -1,6 +1,6 @@
 {
   "name": "redis-rank",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Manage real-time leaderboards using Redis",
   "keywords": [
     "redis",
