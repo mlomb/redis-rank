@@ -1,4 +1,4 @@
-import { Redis, KeyType, Pipeline } from 'ioredis';
+import { Redis, RedisKey, Pipeline, ChainableCommander } from 'ioredis';
 import { Leaderboard, LeaderboardOptions, ID, Rank, Score, SortPolicy, UpdatePolicy } from './Leaderboard';
 import { PeriodicLeaderboard, PeriodicLeaderboardCycle, NowFunction } from './PeriodicLeaderboard';
 
@@ -69,7 +69,7 @@ export type MatrixLeaderboardQueryFilter = {
 type QueryInfo = {
     dimensions: DimensionName[],
     features: FeatureName[],
-    keys: KeyType[],
+    keys: RedisKey[],
     sortPolicies: SortPolicy[]
 }
 
@@ -166,7 +166,7 @@ export class LeaderboardMatrix {
         if(!dimensions || dimensions.length === 0)
             dimensions = this.options.dimensions.map(x => x.name);
 
-        let pipeline: Pipeline = this.client.pipeline();
+        let pipeline: ChainableCommander = this.client.pipeline();
 
         for(let dim of dimensions) {
             for(let feat of this.options.features) {
@@ -203,7 +203,7 @@ export class LeaderboardMatrix {
             for(let feat of features) {
                 let lb = this.getLeaderboard(dim, feat);
                 if(lb)
-                    pipeline.zrem(lb.redisKey, ids);
+                    pipeline.zrem(lb.redisKey, typeof ids === 'string' ? [ids] : ids);
             }
         }
 

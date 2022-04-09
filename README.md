@@ -28,6 +28,8 @@
 
 ## ⚙️ Install
 
+⚠️ For ioredis <= 4.x use `redis-rank@2.1.2`, for ioredis >= 5.x use the latest version.
+
 ```shell
 $ npm install redis-rank ioredis
 ```

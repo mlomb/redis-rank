@@ -1,5 +1,5 @@
-import { Readable, ReadableOptions } from 'stream';
-import { Redis, KeyType, Pipeline } from 'ioredis';
+import { Readable } from 'stream';
+import { Redis, Pipeline, RedisKey, ChainableCommander } from 'ioredis';
 import { extendRedisClient } from './Commands';
 import ExportStream from './ExportStream';
 
@@ -65,7 +65,7 @@ export type EntryUpdateQuery = {
 export class Leaderboard {
 
     private readonly client: Redis;
-    private readonly key: KeyType;
+    private readonly key: RedisKey;
     private readonly options: LeaderboardOptions;
 
     /**
@@ -78,7 +78,7 @@ export class Leaderboard {
      * @param key Redis key for the sorted set. You can use any sorted set, not only the ones created by redis-rank
      * @param options leaderboard options
      */
-    constructor(client: Redis, key: KeyType, options: LeaderboardOptions) {
+    constructor(client: Redis, key: RedisKey, options: LeaderboardOptions) {
         this.client = client;
         this.key = key;
         this.options = options;
@@ -200,7 +200,7 @@ export class Leaderboard {
      * @param pipeline ioredis pipeline
      * @returns if the leaderboard has `limitTopN` enabled
      */
-    limitPipe(pipeline: Pipeline): boolean {
+    limitPipe(pipeline: ChainableCommander): boolean {
         let limited = (this.options.limitTopN && this.options.limitTopN > 0) as boolean;
         if(limited) {
             if(this.options.sortPolicy === 'high-to-low')
@@ -223,7 +223,7 @@ export class Leaderboard {
      * @param pipeline ioredis pipeline
      * @param updatePolicy override the default update policy only for this update
      */
-    updatePipe(entries: EntryUpdateQuery[], pipeline: Pipeline, updatePolicy?: UpdatePolicy) {
+    updatePipe(entries: EntryUpdateQuery[], pipeline: ChainableCommander, updatePolicy?: UpdatePolicy) {
         let fn: any = null;
 
         switch (updatePolicy || this.options.updatePolicy) {
@@ -249,7 +249,7 @@ export class Leaderboard {
      * leaderboard and M the number of entries to be removed
      */
     async remove(ids: ID | ID[]): Promise<void> {
-        await this.client.zrem(this.key, ids);
+        await this.client.zrem(this.key, typeof ids === 'string' ? [ids] : ids);
     }
 
     /**
@@ -453,7 +453,7 @@ export class Leaderboard {
         return this.client;
     }
 
-    public get redisKey(): KeyType {
+    public get redisKey(): RedisKey {
         return this.key;
     }
 
@@ -471,8 +471,10 @@ export class Leaderboard {
      * @param pipeline ioredis pipeline
      * @returns array of each command result
      */
-    static async execPipeline(pipeline: Pipeline): Promise<any[]> {
+    static async execPipeline(pipeline: ChainableCommander): Promise<any[]> {
         let outputs = await pipeline.exec();
+        /* istanbul ignore next */
+        if (outputs === null) throw new Error('Pipeline error');
         let results = [];
         for (let [err, result] of outputs) {
             /* istanbul ignore next */
