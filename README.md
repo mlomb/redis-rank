@@ -101,12 +101,18 @@ You are ready, now read one of the examples linked below!
 
 # Running tests
 
-A Redis server in localhost without password is expected.
+A Redis server in localhost without password is expected. You can create one easily with Docker like so:
+
+```shell
+docker run -p 6379:6379 -t -i --rm redis:latest
+```
 
 ⚠️ Note: **The database #15 will be flushed** ⚠️
 
+Run tests:
+
 ```shell
-$ npm test
+npm test
 ```
 
 I tried with [ioredis-mock](https://www.npmjs.com/package/ioredis-mock) but I experienced some issues with Lua scripts so we have to rely on a real Redis server (which I think is better anyway).
