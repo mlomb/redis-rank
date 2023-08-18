@@ -3,8 +3,8 @@
 <h3 align="center">Manage real-time leaderboards using <a href="https://redis.io">Redis</a></h3>
 
 <p align="center">
-  <a href="https://travis-ci.org/mlomb/redis-rank">
-    <img alt="Build Status" src="https://travis-ci.org/mlomb/redis-rank.svg?branch=master">
+  <a href="https://github.com/mlomb/redis-rank/actions">
+    <img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/mlomb/redis-rank/ci.yml">
   </a>
   <a href="https://codecov.io/gh/mlomb/redis-rank">
     <img alt="codecov" src="https://codecov.io/gh/mlomb/redis-rank/branch/master/graph/badge.svg">
