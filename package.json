@@ -13,7 +13,10 @@
     "highscore",
     "promises"
   ],
-  "repository": "https://github.com/mlomb/redis-rank",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mlomb/redis-rank.git"
+  },
   "homepage": "https://github.com/mlomb/redis-rank",
   "bugs": "https://github.com/mlomb/redis-rank/issues",
   "author": "Martin Emiliano Lombardo <to@mlomb.me>",
