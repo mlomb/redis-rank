@@ -1,6 +1,6 @@
 {
   "name": "redis-rank",
-  "version": "2.2.2",
+  "version": "2.2.3",
   "description": "Manage real-time leaderboards using Redis",
   "keywords": [
     "redis",
@@ -30,14 +30,14 @@
     "dev": "nodemon --exec \"npm run test\" --watch lib --watch tests -e ts,tsx"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.3",
-    "@types/node": "^20.5.1",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.14.0",
     "codecov": "^3.8.3",
-    "ioredis": "^5.3.2",
-    "jest": "^29.6.2",
-    "nodemon": "^3.0.1",
-    "ts-jest": "^29.1.1",
-    "typescript": "^5.1.6"
+    "ioredis": "^5.6.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.9",
+    "ts-jest": "^29.3.1",
+    "typescript": "^5.8.2"
   },
   "peerDependencies": {
     "ioredis": ">=5.x"
